@@ -211,12 +211,12 @@ footer#bar .picks{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 /* ═══════════ 2026 브랜드 리뉴얼 ═══════════ */
 :root{
   --primary:#4f46e5; --primary-ink:#ffffff; --accent:#f59e0b;
-  --hl:rgba(245,158,11,.42); --ring:rgba(79,70,229,.16);
+  --hl:rgba(245,158,11,.42); --hl-chip:rgba(245,158,11,.17); --ring:rgba(79,70,229,.16);
   --shadow:0 4px 18px rgba(24,26,60,.08);
 }
 html[data-theme="dark"]{
   --primary:#8b8cf7; --primary-ink:#0b1020; --accent:#fbbf24;
-  --hl:rgba(251,191,36,.26); --ring:rgba(139,140,247,.22);
+  --hl:rgba(251,191,36,.26); --hl-chip:rgba(251,191,36,.21); --ring:rgba(139,140,247,.22);
 }
 body{font-feature-settings:"tnum" 1; letter-spacing:-.005em;}
 h2{font-size:1.12rem; letter-spacing:-.03em;}
@@ -274,8 +274,14 @@ html[data-theme="dark"] .btn.primary{background:linear-gradient(135deg,#6366f1,#
 .qbtn .t{font-weight:800; font-size:.94rem; letter-spacing:-.02em;}
 .qbtn .d{font-size:.73rem; color:var(--muted); font-weight:600;}
 
-/* 해설 하이라이트 */
-.hl{font-weight:800; color:inherit; background:linear-gradient(transparent 56%, var(--hl) 56%); border-radius:2px; padding:0 1px;}
+/* 해설 하이라이트 — 조문·금액·용어를 단일 칩으로.
+   굵기 800 + 반투명 그라데이션은 안드로이드 system-ui 폰트에서 § 글자가 뭉개지고
+   줄마다 형광 띠 높이가 어긋나므로, 굵기 600 + 단색 배경 칩으로 고정한다. */
+.hl{
+  font-weight:600; color:inherit; background:var(--hl-chip);
+  border-radius:5px; padding:1px 5px;
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
 
 /* 스플래시 */
 #splash{
@@ -301,7 +307,7 @@ html[data-theme="dark"] .btn.primary{background:linear-gradient(135deg,#6366f1,#
   color:var(--text); font-family:inherit; font-size:1rem; padding:12px 14px;
 }
 .searchbox input:focus{outline:2px solid var(--ring); border-color:var(--primary);}
-.hitmark{background:var(--hl); border-radius:2px; font-weight:800;}
+.hitmark{background:var(--hl-chip); border-radius:4px; padding:1px 4px; font-weight:600;}
 
 /* 답안지(회차 시험) */
 .xrow{display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--line); border-radius:14px; background:var(--surface);}
@@ -331,7 +337,6 @@ details.memo textarea{
   width:100%; min-height:70px; border:1px solid var(--line); border-radius:12px; background:var(--surface2);
   color:var(--text); font-family:inherit; font-size:.92rem; line-height:1.6; padding:10px 12px; resize:vertical;
 }
-.exp .txt .hl, .exp .v .hl{background:linear-gradient(transparent 56%, var(--hl) 56%);}
 
 /* 완료 화면 링 */
 .score{
@@ -510,7 +515,16 @@ function ddayText(){
   var n = ddayLeft();
   return n > 0 ? 'D-' + n : (n === 0 ? 'D-DAY' : 'D+' + (-n));
 }
-var HL_RE = /(제\s?\d+\s?조(?:의\s?\d+)?|§\s?\d+(?:의\s?\d+)?|\d[\d,.]*\s?(?:원|%)|「[^」]{1,24}」)/g;
+/* ── 해설 하이라이트: 조문·금액·「용어」를 한 번의 패스로 감싼다 ──
+   단일 replace 1회 = 이미 넣은 <b> 태그를 다시 읽지 않으므로 중첩·깨진 태그가 생기지 않는다.
+   조문은 '§81의4·§81의9', '제81조의4, 제81조의5'처럼 이어 붙은 것을 한 칩으로 묶는다. */
+var ART_ONE = '(?:§\\s?\\d+(?:\\s?의\\s?\\d+)?|제\\s?\\d+\\s?조(?:\\s?의\\s?\\d+)?)';
+var ART_SEP = '(?:\\s*[·ㆍ・‧∙,，/]\\s*|\\s*및\\s*)';
+var HL_RE = new RegExp(
+  '(' + ART_ONE + '(?:' + ART_SEP + ART_ONE + ')*'
+  + '|\\d[\\d,.]*\\s?(?:억|만|천)?\\s?(?:원|%|％)'
+  + '|「[^」]{1,24}」'
+  + ')', 'g');
 function hl(s){ return esc(s).replace(HL_RE, function(m){ return '<b class="hl">' + m + '</b>'; }); }
 function nl2br(s){ return String(s).split('\n').map(function(l,i){ return i ? '<br>' + l : l; }).join(''); }
 var SEARCH_IDX = null;
