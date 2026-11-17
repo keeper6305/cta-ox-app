@@ -491,7 +491,7 @@ function ddayText(){
   var n = ddayLeft();
   return n > 0 ? 'D-' + n : (n === 0 ? 'D-DAY' : 'D+' + (-n));
 }
-var HL_RE = /(제\s?\d+\s?조(?:의\s?\d+)?|§\s?\d+(?:의\s?\d+)?|\d[\d,.]*\s?(?:원|%)|\d{1,2}\s?(?:년|개월|일|시간|분)(?![가-힣])|「[^」]{1,24}」)/g;
+var HL_RE = /(제\s?\d+\s?조(?:의\s?\d+)?|§\s?\d+(?:의\s?\d+)?|\d[\d,.]*\s?(?:원|%)|「[^」]{1,24}」)/g;
 function hl(s){ return esc(s).replace(HL_RE, function(m){ return '<b class="hl">' + m + '</b>'; }); }
 var SEARCH_IDX = null;
 function searchIndex(){
@@ -871,7 +871,7 @@ function renderHome(v, b){
         '<div style="min-width:0">' +
           '<div class="dday">🗓️ 2027 세무사 1차 <b>' + ddayText() + '</b> <span class="tiny" style="opacity:.72">예상 일정</span></div>' +
           '<h2>오늘 ' + today.n + '문항 · 정답률 ' + pct(today.ok, today.n) + '%</h2>' +
-          '<div class="tiny" style="margin-top:3px;opacity:.86">' + esc(scopeLabel()) + ' 커버리지 ' + cov + '% · 지문 ' + seen + ' / ' + scopedSize() + '</div>' +
+          '<div class="tiny" style="margin-top:3px;opacity:.86">' + esc(scopeLabel()) + ' 커버리지 ' + (cov < 1 && seen ? '1% 미만' : cov + '%') + ' · 지문 ' + seen + ' / ' + scopedSize() + '</div>' +
         '</div>' +
         '<div class="streak"><b>' + (S.streak.cur || 0) + '일</b><div class="tiny">연속 학습</div></div>' +
       '</div>' +
@@ -879,7 +879,7 @@ function renderHome(v, b){
       '<div class="spread tiny" style="margin-top:9px;opacity:.9"><span>' + esc(scopeLabel()) + ' 데일리 ' + planDone + ' / ' + planN + '</span>' +
         '<span>' + (planDone >= planN && planN ? '완료 ✓' : '남은 ' + (planN - planDone) + '문항') + '</span></div>' +
       '<div class="tabs" style="margin-top:12px">' + [10,20,30,40].map(function(n){
-        return '<button type="button" class="' + (S.cfg.daily === n ? 'on' : '') + '" data-act="set-daily" data-n="' + n + '">' + n + '</button>';
+        return '<button type="button" class="' + (S.cfg.daily === n ? 'on' : '') + '" data-act="set-daily" data-n="' + n + '">' + n + '문항</button>';
       }).join('') + '</div>' +
     '</div>' +
 
@@ -1149,7 +1149,7 @@ function renderExamResult(v, b){
       return '<div class="li ' + cls + '"><div class="q">' + '<b style="color:' + (it.ok === true ? 'var(--ok)' : it.ok === false ? 'var(--ng)' : 'var(--muted)') + '">' + mark + '</b> ' + (i + 1) + '. ' + esc(q.stmt.slice(0, 150)) + (q.stmt.length > 150 ? '…' : '') + '</div>' +
         '<div class="meta"><span class="chip">정답 ' + q.answer + (it.pick ? ' · 내 답 ' + it.pick : ' · 미응답') + '</span>' +
         '<span class="chip">' + esc(q.topic) + '</span></div>' +
-        '<div class="acts"><button class="btn sm" type="button" data-act="solve-one" data-id="' + esc(q.id) + '">해설 보기</button></div></div>';
+        '<div class="acts"><button class="btn sm" type="button" data-act="review-one" data-id="' + esc(q.id) + '">해설 보기</button></div></div>';
     }).join('') + '</div>';
   b.innerHTML = '<div class="row">' +
     '<button class="btn" type="button" data-act="home">홈</button>' +
@@ -1213,14 +1213,14 @@ function renderQuiz(v, b){
     (isAnswered ?
       '<div class="verdict ' + (correct ? 'good' : 'bad') + '">' +
         '<span class="big">' + (correct ? '✓' : '✕') + '</span>' +
-        '<span>' + (picked === '?' ? '모르는 지문으로 표시했습니다 · 정답은 <b>' + q.answer + '</b>'
+        '<span>' + (s.review ? '해설 · 정답은 <b>' + q.answer + '</b>'
+          : picked === '?' ? '모르는 지문으로 표시했습니다 · 정답은 <b>' + q.answer + '</b>'
           : (correct ? '정답입니다' : '오답입니다') + ' · 이 지문은 <b>' + q.answer + '</b>' + (correct ? '' : ' (내 답 ' + picked + ')')) +
         '</span></div>' + expHTML +
       '<details class="memo"' + (S.memo[q.id] ? ' open' : '') + '><summary>📝 내 메모' + (S.memo[q.id] ? ' · 적어 둠' : '') + '</summary>' +
         '<div class="in"><textarea data-memoid="' + esc(q.id) + '" placeholder="헷갈린 포인트, 헷갈린 이유, 다음에 볼 것…">' + esc(S.memo[q.id] || '') + '</textarea></div></details>' +
       '<div class="row" style="margin-top:10px;gap:8px">' +
         '<button class="btn sm ghost" type="button" data-act="ai" data-id="' + esc(q.id) + '">🤖 AI에게 묻기</button>' +
-        '<button class="btn sm ghost" type="button" data-act="bookq" data-id="' + esc(q.id) + '">' + (S.book[q.id] ? '★ 저장됨' : '☆ 저장') + '</button>' +
       '</div>'
       :
       '<div class="banner" style="margin-top:12px"><b>O</b> = 이 지문이 맞다 &nbsp;·&nbsp; <b>X</b> = 이 지문이 틀리다</div>');
@@ -1232,8 +1232,10 @@ function renderQuiz(v, b){
       '</div>' +
       '<button class="btn ghost" type="button" data-act="pick" data-v="?" style="min-height:48px;margin-top:8px;font-size:.9rem">🤷 모르겠음 — 오답노트에 담기</button>';
   }else{
-    b.innerHTML = '<button class="btn primary" type="button" data-act="next" style="min-height:64px">' +
-      (pos >= s.ids.length ? '결과 보기 →' : '다음 문항 →') + '</button>';
+    b.innerHTML = s.review
+      ? '<button class="btn primary" type="button" data-act="back-exam" style="min-height:64px">시험 결과로 돌아가기</button>'
+      : '<button class="btn primary" type="button" data-act="next" style="min-height:64px">' +
+        (pos >= s.ids.length ? '결과 보기 →' : '다음 문항 →') + '</button>';
   }
   try{ window.scrollTo(0, 0); }catch(e){}
 }
@@ -1294,7 +1296,8 @@ function renderWrong(v, b){
   var all = wrongList(false);
   var open = all.filter(function(x){ return !x.w.res; });
   var closed = all.filter(function(x){ return x.w.res; });
-  var list = tab === 'open' ? open : closed;
+  var dnkList = all.filter(function(x){ return S.dnk[x.q.id]; });
+  var list = tab === 'dnk' ? dnkList : (tab === 'open' ? open : closed);
   var rows = list.map(function(x){
     var q = x.q;
     return '<div class="li"><div class="q">' + esc(q.stmt) + '</div>' +
@@ -1316,10 +1319,13 @@ function renderWrong(v, b){
     '<div class="spread" style="margin:8px 2px 8px"><h2 style="margin:0">오답노트</h2>' +
       '<button class="btn sm ghost" type="button" data-act="home">홈</button></div>' +
     scopeChips() +
-    '<div class="tabs"><button type="button" class="' + (tab === 'open' ? 'on' : '') + '" data-act="tab" data-t="open">다시 볼 문항 ' + open.length + '</button>' +
+    '<div class="tabs"><button type="button" class="' + (tab === 'open' ? 'on' : '') + '" data-act="tab" data-t="open">다시 볼 ' + open.length + '</button>' +
+      '<button type="button" class="' + (tab === 'dnk' ? 'on' : '') + '" data-act="tab" data-t="dnk">모름 ' + dnkList.length + '</button>' +
       '<button type="button" class="' + (tab === 'closed' ? 'on' : '') + '" data-act="tab" data-t="closed">해결됨 ' + closed.length + '</button></div>' +
     (list.length ? '<div class="list">' + rows + '</div>' :
-      '<div class="card center"><p class="muted">' + (tab === 'open' ? (isAll() ? '다시 볼 문항이 없습니다. 잘 하고 있어요.' : esc(scopeLabel()) + '에는 다시 볼 문항이 없습니다.') : '해결된 문항이 아직 없습니다.') + '</p></div>');
+      '<div class="card center"><p class="muted">' + (tab === 'dnk' ? '「모르겠음」으로 넘긴 지문이 여기에 모입니다.'
+        : tab === 'open' ? (isAll() ? '다시 볼 문항이 없습니다. 잘 하고 있어요.' : esc(scopeLabel()) + '에는 다시 볼 문항이 없습니다.')
+        : '해결된 문항이 아직 없습니다.') + '</p></div>');
 
   b.innerHTML = open.length
     ? '<button class="btn primary" type="button" data-act="start-wrong">🔁 오답 집중 출제 · ' + Math.min(open.length, 20) + '문항</button>'
@@ -1478,7 +1484,17 @@ document.addEventListener('click', function(ev){
   else if(act === 'rounds'){ view = {name:'rounds'}; render(); }
   else if(act === 'set-roundn'){
     S.cfg.roundN = parseInt(el.getAttribute('data-n'), 10) || 0; save(); render();
-  }else if(act === 'book'){ view = {name:'book'}; render(); }
+  }else if(act === 'review-one'){
+    var rid = el.getAttribute('data-id');
+    if(byId.has(rid)){
+      var rq = byId.get(rid), ra = {};
+      ra[rid] = rq.answer;
+      session = {mode:'wrong', ids:[rid], i:0, answered:ra, ok:0, subject:null, topic:null,
+                 date:dkey(), picked:null, review:true};
+      view = {name:'quiz'}; render();
+    }
+  }else if(act === 'back-exam'){ session = null; view = {name:'examresult'}; render(); }
+  else if(act === 'book'){ view = {name:'book'}; render(); }
   else if(act === 'search'){ view = {name:'search', q:''}; render(); }
   else if(act === 'bookq'){ toggleBook(el.getAttribute('data-id')); }
   else if(act === 'ai'){
