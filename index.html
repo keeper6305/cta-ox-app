@@ -253,6 +253,42 @@ SUBJECTS.forEach(function(s){
 function shortName(s){ return SHORT[s] || s; }
 function topicKey(q){ return q.subject + '|' + q.topic; }
 
+/* ─────────── 기출 회차 인덱스 (연도·회차) ─────────── */
+var ROUND_INDEX = {}, ROUNDS_BY_SUBJ = {};
+BANK.forEach(function(q){
+  var rk = q.subject + '|' + q.year + '|' + q.round;
+  var e = ROUND_INDEX[rk];
+  if(!e){ e = ROUND_INDEX[rk] = {key:rk, subject:q.subject, year:q.year, round:q.round, n:0, q:0, nums:{}}; }
+  e.n++;
+  if(!e.nums[q.num]){ e.nums[q.num] = 1; e.q++; }
+});
+Object.keys(ROUND_INDEX).forEach(function(k){
+  var e = ROUND_INDEX[k];
+  if(!ROUNDS_BY_SUBJ[e.subject]) ROUNDS_BY_SUBJ[e.subject] = [];
+  ROUNDS_BY_SUBJ[e.subject].push(e);
+});
+function roundNo(r){ return parseInt(String(r || '').replace(/[^0-9]/g, ''), 10) || 0; }
+SUBJECTS.forEach(function(s){
+  (ROUNDS_BY_SUBJ[s] || []).sort(function(a, b){
+    return (b.year - a.year) || (roundNo(b.round) - roundNo(a.round));
+  });
+});
+function roundLabel(e){ return e.year + ' ' + e.round; }
+function roundPool(e){
+  return BANK.filter(function(q){ return q.subject === e.subject && q.year === e.year && q.round === e.round; });
+}
+function roundStat(e){
+  var pool = roundPool(e), n = 0, ok = 0, seen = 0;
+  pool.forEach(function(q){
+    var a = S.ans[q.id];
+    if(a){ n += a.n || 0; ok += a.o || 0; seen++; }
+  });
+  return {total:e.n, q:e.q, n:n, ok:ok, seen:seen, rate:pct(ok, n), cover:pct(seen, e.n)};
+}
+function roundEntries(sc){ return (sc && sc !== '전체') ? (ROUNDS_BY_SUBJ[sc] || []) : SUBJECTS.reduce(function(acc, s){
+  return acc.concat(ROUNDS_BY_SUBJ[s] || []);
+}, []); }
+
 var KEY = 'sebeop_ox_v1';
 
 /* ─────────── 상태 ─────────── */
@@ -470,6 +506,8 @@ function startSession(mode, opts){
   }else if(mode === 'wrong'){
     var n2 = opts.n || 20;
     ids = wrongList(true).slice(0, n2).map(function(x){ return x.id; });
+  }else if(mode === 'round'){
+    ids = buildRoundIds(opts, opts.n || 0);
   }
   var answered = {};
   var i = 0;
@@ -483,6 +521,29 @@ function startSession(mode, opts){
              startedAt:Date.now(), picked:null};
   view = {name:'quiz'};
   render();
+}
+/* 한 회차 = 문항당 지문 1개. 아직 안 푼 지문이 남은 문항을 번호 순으로 먼저, 남는 자리는 푼 문항에서. */
+function buildRoundIds(opts, n){
+  var pool = BANK.filter(function(q){ return q.subject === opts.subject && q.year === opts.year && q.round === opts.round; });
+  var byNum = {}, nums = [];
+  pool.forEach(function(q){
+    if(!byNum[q.num]){ byNum[q.num] = []; nums.push(q.num); }
+    byNum[q.num].push(q);
+  });
+  nums.sort(function(a, b){ return a - b; });
+  var rnd = mulberry32(hashStr('round:' + opts.subject + ':' + opts.year + ':' + opts.round + ':' + Object.keys(S.ans).length));
+  var out = [], rest = [];
+  nums.forEach(function(num){
+    var arr = byNum[num];
+    var unseen = arr.filter(function(q){ return !S.ans[q.id]; });
+    if(unseen.length){ out.push(unseen[Math.floor(rnd() * unseen.length)].id); }
+    else { rest.push(arr); }
+  });
+  shuffle(rest, rnd).forEach(function(arr){
+    out.push(arr[Math.floor(rnd() * arr.length)].id);
+  });
+  if(n > 0) out = out.slice(0, n);
+  return out;
 }
 function pruneDaily(){
   var keys = Object.keys(S.daily).sort();
@@ -557,6 +618,7 @@ function render(){
   else if(name === 'wrong') renderWrong(v, b);
   else if(name === 'stats') renderStats(v, b);
   else if(name === 'topics') renderTaxes(v, b);
+  else if(name === 'rounds') renderRounds(v, b);
   else renderHome(v, b);
   var hb = document.getElementById('homebtn');
   if(hb) hb.style.display = (name === 'home') ? 'none' : 'inline-flex';
@@ -626,6 +688,9 @@ function renderHome(v, b){
       '<button class="item" type="button" data-act="topics"><span class="ico">🎯</span>' +
         '<span><span class="t">' + esc(focusLabel) + '</span><br><span class="d">' + esc(focusDesc) + '</span></span>' +
         '<span class="arrow">›</span></button>' +
+      '<button class="item" type="button" data-act="rounds"><span class="ico">🗂️</span>' +
+        '<span><span class="t">기출 회차별 풀기</span><br><span class="d">' + esc(roundSummary()) + '</span></span>' +
+        '<span class="arrow">›</span></button>' +
       '<button class="item" type="button" data-act="wrong"><span class="ico">🔁</span>' +
         '<span><span class="t">오답노트 · 오답 집중 출제</span><br><span class="d">' +
         (open.length ? open.length + '문항이 다시 볼 목록에 있어요' : '지금은 틀린 문항이 없어요') + '</span></span>' +
@@ -651,6 +716,13 @@ function renderHome(v, b){
   b.innerHTML = '<button class="btn primary" type="button" data-act="daily">' +
     '▶ ' + esc(scopeLabel()) + ' 데일리 ' + (planDone >= planN && planN ? '한 번 더' : (planDone ? '이어서' : '시작')) +
     ' · ' + S.cfg.daily + '문항</button>';
+}
+
+function roundSummary(){
+  var ents = roundEntries(scope());
+  if(!ents.length) return '회차 정보가 없습니다';
+  if(isAll()) return '4개 과목 · ' + ents.length + '회차 · 최근 ' + roundLabel(ents[0]);
+  return ents.length + '회차 · ' + roundLabel(ents[ents.length - 1]) + ' ~ ' + roundLabel(ents[0]);
 }
 
 function installBanner(){
@@ -686,6 +758,39 @@ function renderTaxes(v, b){
     '<div class="tabs" id="cnttabs">' + [10,20,30].map(function(n){
       return '<button type="button" class="' + (S.cfg.count === n ? 'on' : '') + '" data-act="set-count" data-n="' + n + '">' + n + '문항</button>';
     }).join('') + '</div>' + body;
+  b.innerHTML = '';
+}
+
+function renderRounds(v, b){
+  var sc = scope();
+  var subs = isAll() ? SUBJECTS : [sc];
+  var nOpt = S.cfg.roundN || 0;
+  var body = '';
+  subs.forEach(function(s){
+    var ents = ROUNDS_BY_SUBJ[s] || [];
+    if(!ents.length) return;
+    var totQ = ents.reduce(function(a, e){ return a + e.q; }, 0);
+    var totS = ents.reduce(function(a, e){ return a + e.n; }, 0);
+    body += '<div class="secttl">' + esc(s) + ' · ' + ents.length + '회차 · ' + totQ + '문항 / 지문 ' + totS + '개</div>' +
+      '<div class="list">' + ents.map(function(e){
+        var x = roundStat(e);
+        var runN = nOpt ? Math.min(nOpt, x.q) : x.q;
+        return '<div class="taxrow"><div style="flex:1"><div class="nm">' + esc(roundLabel(e)) + '</div>' +
+          '<div class="sub">' + x.q + '문항 · 지문 ' + x.total + '개 · ' +
+          (x.n ? x.rate + '% 정답 · 커버 ' + x.cover + '%' : '미학습') + '</div>' +
+          '<div class="pbar"><i style="width:' + (x.n ? x.cover : 0) + '%"></i></div></div>' +
+          '<button class="btn sm go" type="button" data-act="start-round" data-subject="' + esc(e.subject) + '" data-year="' + e.year + '" data-round="' + esc(e.round) + '">' + runN + '문항 ›</button></div>';
+      }).join('') + '</div>';
+  });
+  v.innerHTML =
+    '<div class="spread" style="margin:8px 2px 8px"><h2 style="margin:0">기출 회차별 풀기</h2>' +
+      '<button class="btn sm ghost" type="button" data-act="home">홈</button></div>' +
+    '<div class="banner" style="margin-bottom:8px">회차를 고르면 그 시험의 문항을 번호 순으로 한 문항 = 한 지문씩 냅니다. 아직 안 푼 지문이 있는 문항부터 나옵니다.</div>' +
+    scopeChips() +
+    '<div class="tabs" id="roundtabs">' +
+      [[0, '회차 전체'], [10, '10문항'], [20, '20문항'], [30, '30문항']].map(function(p){
+        return '<button type="button" class="' + (nOpt === p[0] ? 'on' : '') + '" data-act="set-roundn" data-n="' + p[0] + '">' + p[1] + '</button>';
+      }).join('') + '</div>' + body;
   b.innerHTML = '';
 }
 
@@ -733,6 +838,7 @@ function renderQuiz(v, b){
     '<div class="qhead">' +
       '<span class="chip subj">' + esc(shortName(q.subject)) + '</span>' +
       '<span class="chip tax">' + esc(q.topic) + '</span>' +
+      (s.mode === 'round' ? '<span class="chip">' + esc((s.year || '') + ' ' + (s.round || '')) + '</span>' : '') +
       '<span class="chip">' + esc(q.src) + '</span>' +
       (q.revised ? '<span class="chip rev">🔄 2026 개정 반영</span>' : '') +
       (S.wrong[q.id] ? '<span class="chip ng">누적 ' + S.wrong[q.id].w + '회 틀림</span>' : '') +
@@ -765,6 +871,7 @@ function sessionLabel(s){
   if(!s) return '';
   if(s.mode === 'daily') return scopeLabel() + ' 데일리';
   if(s.mode === 'focus') return shortName(s.subject || '') + ' · ' + (s.topic || '') + ' 집중';
+  if(s.mode === 'round') return shortName(s.subject || '') + ' · ' + (s.year || '') + ' ' + (s.round || '') + ' 기출';
   return '오답 집중';
 }
 
@@ -775,6 +882,9 @@ function renderDone(v, b){
   var open = wrongList(true);
   var msg = s.mode === 'wrong'
       ? (rate >= 80 ? '오답 지문을 거의 다 해결했습니다.' : '아직 헷갈리는 지문이 남아 있습니다. 해설을 한 번 더 읽어 보세요.')
+      : s.mode === 'round'
+      ? (rate >= 80 ? '이 회차는 거의 잡혔습니다. 다른 회차로 넘어가 보세요.'
+        : '이 회차에서 틀린 지문은 오답노트에 쌓였습니다. 회차별 풀기로 한 번 더 돌려 보세요.')
       : (rate >= 90 ? '아주 좋습니다. 이 단원은 거의 잡혔어요.'
         : rate >= 70 ? '기본은 잡혔습니다. 틀린 지문만 다시 보면 됩니다.'
         : '오답이 많습니다. 해설의 「이 선지가 그런 이유」를 다시 읽어 보세요.');
@@ -981,6 +1091,14 @@ document.addEventListener('click', function(ev){
     }
     startSession('daily');
   }else if(act === 'topics'){ view = {name:'topics'}; render(); }
+  else if(act === 'rounds'){ view = {name:'rounds'}; render(); }
+  else if(act === 'set-roundn'){
+    S.cfg.roundN = parseInt(el.getAttribute('data-n'), 10) || 0; save(); render();
+  }else if(act === 'start-round'){
+    startSession('round', {subject: el.getAttribute('data-subject'),
+      year: parseInt(el.getAttribute('data-year'), 10),
+      round: el.getAttribute('data-round'), n: S.cfg.roundN || 0});
+  }
   else if(act === 'wrong'){ view = {name:'wrong', tab:'open'}; render(); }
   else if(act === 'home'){ view = {name:'home'}; session = null; render(); }
   else if(act === 'pick'){ answer(el.getAttribute('data-v')); }
@@ -1064,7 +1182,9 @@ window.__sebeop = {
   start: startSession, totals: totals, scopeTotals: scopeTotals, wrongList: wrongList,
   subjectStats: subjectStats, topicStats: topicStats, rounds: rounds,
   scope: scope, setScope: function(s){ S.cfg.scope = s; save(); view = {name:'home'}; session = null; render(); },
-  subjects: SUBJECTS, topics: TOPICS, errs: window.__errs
+  subjects: SUBJECTS, topics: TOPICS, errs: window.__errs,
+  roundEntries: roundEntries, roundStat: roundStat, ROUNDS_BY_SUBJ: ROUNDS_BY_SUBJ,
+  buildRoundIds: buildRoundIds
 };
 })();
 </script>
