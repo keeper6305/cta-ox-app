@@ -1,15 +1,15 @@
 {
   "name": "세무사 1차 OX · 전과목",
   "short_name": "세무사 OX",
-  "description": "세무사 1차 기출 선지 O/X 학습 — 세법학개론·재정학·행정소송법·회계학개론 2,524지문, 과목별 데일리·오답노트·정답률 기록",
+  "description": "세무사 1차 기출 선지 O/X 학습 — 세법학개론·재정학·행정소송법·회계학개론 2,524지문. 기출 회차별·단원별·데일리, 오답노트, 북마크, 검색, 회차 답안지까지.",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0f1e",
-  "theme_color": "#101a33",
+  "background_color": "#1e1b4b",
+  "theme_color": "#4f46e5",
   "categories": [
     "education",
     "productivity"
