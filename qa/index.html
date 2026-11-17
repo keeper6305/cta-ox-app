@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>세무사 OX — 모바일 뷰포트 QA</title>
 <style>
   body{margin:0;background:#20242e;color:#e8edf7;font:14px/1.5 system-ui,-apple-system,"Malgun Gothic",sans-serif}
@@ -16,11 +17,19 @@
 <h1>세무사 OX · 모바일 뷰포트 QA (360 / 390 / 430px)</h1>
 <div class="wrap">
   <div class="frame"><p class="cap">360 × 780 (Galaxy S 계열)</p>
-    <iframe id="f360" src="../?v=qa6" width="360" height="780"></iframe></div>
+    <iframe id="f360" width="360" height="780"></iframe></div>
   <div class="frame"><p class="cap">390 × 844 (iPhone 14/15)</p>
-    <iframe id="f390" src="../?v=qa6" width="390" height="844"></iframe></div>
+    <iframe id="f390" width="390" height="844"></iframe></div>
   <div class="frame"><p class="cap">430 × 932 (iPhone Pro Max)</p>
-    <iframe id="f430" src="../?v=qa6" width="430" height="932"></iframe></div>
+    <iframe id="f430" width="430" height="932"></iframe></div>
 </div>
+<script>
+  /* 항상 최신 빌드를 보도록 캐시를 비껴간다 */
+  var v = new URLSearchParams(location.search).get('v') || Date.now();
+  ['f360', 'f390', 'f430'].forEach(function(id){
+    var f = document.getElementById(id);
+    if(f) f.src = '../?qa=' + encodeURIComponent(v);
+  });
+</script>
 </body>
 </html>
