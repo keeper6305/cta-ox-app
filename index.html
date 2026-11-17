@@ -1379,7 +1379,7 @@ function renderStats(v, b){
   var rowsRound = rEnts.length ? '<div class="card" style="margin-top:12px"><h3>기출 회차별 진도</h3>' +
     rEnts.map(function(e){
       var x = roundStat(e);
-      return '<div style="margin-bottom:10px"><div class="spread tiny"><span style="font-weight:800">' + esc(roundLabel(e)) + '</span>' +
+      return '<div style="margin-bottom:10px"><div class="spread tiny"><span style="font-weight:800">' + esc(shortName(e.subject)) + ' · ' + esc(roundLabel(e)) + '</span>' +
         '<span class="muted">' + (x.n ? x.rate + '% · 커버 ' + x.cover + '%' : '미학습') + '</span></div>' +
         '<div class="pbar"><i style="width:' + (x.n ? x.cover : 0) + '%;background:' + (x.n ? 'var(--primary)' : 'transparent') + '"></i></div></div>';
     }).join('') + '</div>' : '';
