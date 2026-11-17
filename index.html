@@ -243,7 +243,21 @@ html[data-theme="dark"] .btn.primary{background:linear-gradient(135deg,#6366f1,#
 .hero .tabs button{color:rgba(255,255,255,.78);}
 .hero .tabs button.on{background:rgba(255,255,255,.95); color:#312e81; box-shadow:none;}
 .hero .streak{text-align:center; min-width:64px;}
-.hero .streak b{display:block; font-size:1.5rem; letter-spacing:-.04em; line-height:1.1;}
+.hero .streak b{display:block; font-size:1.5rem; letter-spacing:-.04em; line-height:1.1; white-space:nowrap;}
+.hero .dday b{white-space:nowrap;}
+@media (max-width: 380px){
+  .hero{padding:16px 14px 14px;}
+  .hero h2{font-size:1.04rem;}
+  .hero .dday{font-size:.72rem;}
+  .hero .dday .tiny{display:none;}
+  .hero .streak{min-width:52px;}
+  .hero .streak b{font-size:1.22rem;}
+  .hero .tabs button{font-size:.82rem; padding:8px 2px;}
+  .qbtn{padding:12px; min-height:80px;}
+  .qbtn .t{font-size:.9rem;}
+  .qbtn .d{font-size:.7rem;}
+  .stmt{font-size:1.12rem;}
+}
 
 /* 퀵 액션 그리드 */
 .quick{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
