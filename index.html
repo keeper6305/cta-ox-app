@@ -301,10 +301,12 @@ html[data-theme="dark"] .btn.primary{background:linear-gradient(135deg,#6366f1,#
 .hitmark{background:var(--hl); border-radius:2px; font-weight:800;}
 
 /* 답안지(회차 시험) */
-.xrow{display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border:1px solid var(--line); border-radius:14px; background:var(--surface);}
-.xrow .no{font-weight:900; color:var(--muted); font-size:.78rem; min-width:20px; padding-top:3px;}
-.xrow .q{font-size:.9rem; line-height:1.62; word-break:keep-all; flex:1; min-width:0;}
-.xtgl{display:flex; gap:6px; flex:none;}
+.xrow{display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--line); border-radius:14px; background:var(--surface);}
+.xrow .xq{display:flex; gap:8px; align-items:flex-start;}
+.xrow .no{font-weight:900; color:var(--muted); font-size:.78rem; min-width:18px; padding-top:3px; flex:none;}
+.xrow .q{font-size:.92rem; line-height:1.6; word-break:keep-all; flex:1; min-width:0;}
+.xtgl{display:flex; gap:6px; flex:none; align-self:flex-end;}
+.xtgl button{width:44px; height:36px;}
 .xtgl button{
   width:40px; height:40px; border-radius:12px; border:1.5px solid var(--line); background:var(--surface2);
   color:var(--muted); font-family:inherit; font-weight:900; font-size:.95rem; cursor:pointer;
@@ -1107,8 +1109,8 @@ function renderExam(v, b){
     '<div class="banner" style="margin-bottom:10px">O/X만 빠르게 골라 두고 한 번에 채점합니다. 제출하면 틀린 지문부터 해설로 이어집니다.</div>' +
     '<div class="list">' + e.items.map(function(it, i){
       var q = byId.get(it.id);
-      return '<div class="xrow"><div class="no">' + (i + 1) + '</div>' +
-        '<div class="q">' + esc(q.stmt) + '</div>' +
+      return '<div class="xrow"><div class="xq"><span class="no">' + (i + 1) + '</span>' +
+        '<div class="q">' + esc(q.stmt) + '</div></div>' +
         '<div class="xtgl"><button type="button" data-act="xpick" data-i="' + i + '" data-v="O" class="' + (it.pick === 'O' ? 'on o' : '') + '">O</button>' +
         '<button type="button" data-act="xpick" data-i="' + i + '" data-v="X" class="' + (it.pick === 'X' ? 'on x' : '') + '">X</button></div></div>';
     }).join('') + '</div>';
