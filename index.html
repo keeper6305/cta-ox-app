@@ -890,13 +890,18 @@ function startSession(mode, opts){
     ids = buildRoundIds(opts, opts.n || 0);
   }
   var answered = {};
-  var i = 0;
+  var i = 0, okInit = 0;
   if(mode === 'daily'){
     var p = S.daily[dateStr];
-    ids.forEach(function(id){ if(p.done[id]) answered[id] = p.done[id]; });
-    while(i < ids.length && answered[ids[i]]) i++;
+    ids.forEach(function(id){
+      if(p.done[id] === undefined) return;
+      answered[id] = p.done[id];
+      var pq = byId.get(id);
+      if(pq && p.done[id] === pq.answer) okInit++;
+    });
+    while(i < ids.length && answered[ids[i]] !== undefined) i++;
   }
-  session = {mode:mode, ids:ids, i:i, answered:answered, ok:0,
+  session = {mode:mode, ids:ids, i:i, answered:answered, ok:okInit,
              subject:opts.subject || null, topic:opts.topic || null, date:dateStr,
              year:opts.year || null, round:opts.round || null,
              startedAt:Date.now(), picked:null, noResume:!!opts.noResume};
