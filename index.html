@@ -626,6 +626,12 @@ function totals(){
   for(var k in S.days){ n += S.days[k].n || 0; ok += S.days[k].ok || 0; }
   return {n:n, ok:ok, rate:pct(ok, n)};
 }
+function totalsOf(o){   /* 백업 파일 안의 기록으로 같은 집계를 낸다(불러오기 확인창용) */
+  var n = 0;
+  var days = (o && o.days) || {};
+  for(var k in days){ n += days[k].n || 0; }
+  return n;
+}
 function scopeTotals(){
   var n = 0, ok = 0;
   for(var id in S.ans){
@@ -1049,6 +1055,18 @@ function renderHome(v, b){
       '<div class="d">' + esc(resumeLabel()) + ' · 남은 ' + resRem + '문항</div></div>' +
       '<div class="g"><button class="btn sm primary" type="button" data-act="resume">이어서</button>' +
       '<button class="btn sm ghost" type="button" data-act="drop-resume">그만</button></div></div>' : '';
+  /* 답안지(📝)를 풀다 나온 경우 — 회차별로 다시 찾아 들어가지 않아도 홈에서 바로 이어 푼다 */
+  var exD = S.exdraft, exPicked = 0, exHTML = '';
+  if(exD && exD.items && exD.items.length){
+    exPicked = exD.items.filter(function(it){ return !!it.pick; }).length;
+    if(exPicked){
+      exHTML = '<div class="resume"><div style="min-width:0"><div class="t">답안지 이어서</div>' +
+        '<div class="d">' + esc(shortName(exD.subject) + ' ' + exD.year + ' ' + exD.round) + ' · ' +
+        exPicked + ' / ' + exD.items.length + ' 답함</div></div>' +
+        '<div class="g"><button class="btn sm primary" type="button" data-act="resume-exam">이어서</button>' +
+        '<button class="btn sm ghost" type="button" data-act="drop-exam">그만</button></div></div>';
+    }
+  }
   var pk = planKey(dkey());
   var plan = S.daily[pk];
   var planDone = plan ? Object.keys(plan.done || {}).length : 0;
@@ -1074,7 +1092,8 @@ function renderHome(v, b){
   }
   var focusDesc = isAll() ? '4개 과목 · ' + SUBJECTS.reduce(function(a, s2){ return a + TOPICS[s2].length; }, 0) + '개 단원'
     : TOPICS[scope()].length + '개 단원';
-  var nBook = bookmarkCount();
+  var nBook = 0;   /* 지금 고른 과목 안의 북마크만 센다(목록과 숫자가 어긋나지 않게) */
+  for(var bid in S.book){ var bq = byId.get(bid); if(bq && inScope(bq)) nBook++; }
   var seen = 0;
   for(var sid in S.ans){ var qq = byId.get(sid); if(qq && inScope(qq)) seen++; }
   var cov = pct(seen, scopedSize());
@@ -1082,6 +1101,7 @@ function renderHome(v, b){
   v.innerHTML =
     scopeChips() +
     resumeHTML +
+    exHTML +
     '<div class="hero">' +
       '<div class="spread" style="align-items:flex-start">' +
         '<div style="min-width:0">' +
@@ -1652,11 +1672,15 @@ function importJSON(file){
       var o = JSON.parse(rd.result);
       var d = o && o.data ? o.data : o;
       if(!d || typeof d !== 'object' || !d.ans || !d.days) throw new Error('형식이 맞지 않습니다');
-      if(!confirm('지금 기록을 백업 파일로 덮어쓸까요? (현재 기록 ' + totals().n + '문항 → ' + (Object.keys(d.ans).length ? '가져온 기록' : '빈 기록') + ')')) return;
+      if(!confirm('지금 기록을 백업 파일로 덮어쓸까요?\n현재 ' + totals().n + '문항 · ' + Object.keys(S.ans || {}).length + '지문 → 가져올 ' +
+                  (Object.keys(d.ans || {}).length ? totalsOf(d) + '문항 · ' + Object.keys(d.ans || {}).length + '지문' : '빈 기록'))) return;
       var b = blank();
       b.ans = d.ans || {}; b.wrong = d.wrong || {}; b.days = d.days || {}; b.daily = d.daily || {};
       b.streak = d.streak || b.streak; b.cfg = Object.assign(b.cfg, d.cfg || {});
       b.book = d.book || {}; b.memo = d.memo || {}; b.dnk = d.dnk || {};
+      /* 풀던 세션·답안지도 백업에 담겨 있으므로 함께 되살린다 */
+      b.resume = (d.resume && d.resume.ids && d.resume.ids.length) ? d.resume : null;
+      b.exdraft = (d.exdraft && d.exdraft.items && d.exdraft.items.length) ? d.exdraft : null;
       if(b.cfg.scope !== '전체' && SUBJECTS.indexOf(b.cfg.scope) < 0) b.cfg.scope = '전체';
       b.flags = S.flags;
       S = b; save(); session = null; navReplace({name:'stats'});
@@ -1754,6 +1778,12 @@ document.addEventListener('click', function(ev){
   else if(act === 'home'){ leaveQuiz(); navHome(); }
   else if(act === 'resume'){ resumeQuiz(); }
   else if(act === 'drop-resume'){ S.resume = null; save(); render(); toast('이어서 풀기에서 뺐습니다'); }
+  else if(act === 'resume-exam'){
+    var dft = S.exdraft;
+    if(dft && dft.items && dft.items.length) startExam(dft.subject, dft.year, dft.round);
+    else { S.exdraft = null; save(); render(); }
+  }
+  else if(act === 'drop-exam'){ S.exdraft = null; save(); render(); toast('답안지를 접었습니다'); }
   else if(act === 'pick'){ answer(el.getAttribute('data-v')); }
   else if(act === 'next'){ nextQ(); }
   else if(act === 'set-count'){
@@ -1788,7 +1818,8 @@ document.addEventListener('click', function(ev){
   else if(act === 'import'){ document.getElementById('importfile').click(); }
   else if(act === 'reset'){
     if(confirm('학습 기록을 모두 지웁니다. 되돌릴 수 없습니다. 계속할까요?')){
-      S = blank(); save(); session = null; exam = null; examResult = null; navHome(); toast('기록을 초기화했습니다');
+      var keepFlags = S.flags;                 /* 학습 기록만 지우고 테마·설치 안내 설정은 그대로 둔다 */
+      S = blank(); S.flags = keepFlags; save(); session = null; exam = null; examResult = null; navHome(); toast('기록을 초기화했습니다');
     }
   }else if(act === 'dismiss-install'){
     S.flags.installDismissed = true; save(); render();
