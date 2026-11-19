@@ -112,6 +112,7 @@ async function run(){
 
 async function suite(){
   var S;
+  await wait(420);   /* 스플래시 사라질 시간 */
 
   log('sec', 'A. 홈 · 오늘 목표 게이지');
   t('앱이 그려졌다', q('#view').innerHTML.length > 500);
@@ -183,12 +184,12 @@ async function suite(){
   eq('도트 정답 2개', qa('.dots i.ok').length, 2);
   t('풀던 세션 저장', !!api().resume() && api().resume().ids.length === 10);
   clickSel('#bar button[data-act="next"]'); await wait(50);
-  clickSel('#bar button[data-act="home"]'); await wait(90);
-  t('홈에 이어서 풀기 카드', !!(q('.resume') && q('.resume button[data-act="resume"]')));
-  t('이어서 카드 4 / 10', body().indexOf('4 / 10') >= 0, body().slice(0, 160));
+  clickSel('#homebtn'); await wait(90);
+  eq('헤더 ← 로 홈 복귀', api().view().name, 'home');
+  t('데일리 이어서 버튼', q('#bar button[data-act="daily"]').innerText.indexOf('이어서') >= 0, q('#bar button[data-act="daily"]').innerText);
   eq('목표 게이지 4칸', qa('.goal .segs i.on').length, 4);
-  clickSel('.resume button[data-act="resume"]'); await wait(70);
-  eq('이어서 5번째 문항', api().session().i, 4);
+  clickSel('#bar button[data-act="daily"]'); await wait(70);
+  eq('데일리 이어서 5번째 문항', api().session().i, 4);
   eq('복원 정답 수 2', api().session().ok, 2);
   t('복원 도트(정답2·오답2)', qa('.dots i.ok').length === 2 && qa('.dots i.ng').length === 2);
 
@@ -212,7 +213,6 @@ async function suite(){
   clickSel('#bar button[data-act="retry"]'); await wait(80);
   eq('재도전 2문항', api().session().ids.length, 2);
   eq('재도전 모드', api().session().mode, 'retry');
-  t('재도전 라벨', body().indexOf('틀린 지문 다시') >= 0);
   for(var r2 = 0; r2 < 2; r2++){
     var s3 = api().session();
     var q3 = qOf(s3.ids[s3.i]);
@@ -223,17 +223,27 @@ async function suite(){
   }
   eq('재도전 완료', api().view().name, 'done');
   t('100% 링', body().indexOf('100%') >= 0);
+  t('재도전 라벨(완료 화면)', body().indexOf('틀린 지문 다시') >= 0, body().slice(0, 120));
 
-  log('sec', 'D. 오답노트 · 검색 · 북마크');
+  log('sec', 'D. 오답노트 탭 · 해결/되돌리기 · 검색 · 북마크');
   clickSel('#bar button[data-act="home"]'); await wait(70);
   clickSel('button[data-act="wrong"]'); await wait(60);
   eq('오답노트 화면', api().view().name, 'wrong');
   t('다시 볼 탭', body().indexOf('다시 볼') >= 0);
   t('모름 탭', body().indexOf('모름') >= 0);
   t('해결됨 탭', body().indexOf('해결됨') >= 0);
-  t('오답 항목 있음', qa('.li').length >= 1);
-  t('원인 태그 노출', body().indexOf('예외·요건') >= 0);
+  eq('해결됨 2건', qa('.tabs button')[2].innerText.replace(/[^0-9]/g, ''), '2');
+  t('다시 볼은 0건 안내', body().indexOf('다시 볼 문항이 없습니다') >= 0, body().slice(0, 140));
+  qa('.tabs button')[2].click(); await wait(60);
+  t('해결됨 목록 2건', qa('.li').length === 2, 'li=' + qa('.li').length);
+  t('해결됨에 원인 태그', body().indexOf('예외·요건') >= 0, body().slice(0, 200));
+  clickSel('.li button[data-act="unresolve"]'); await wait(60);
+  t('다시 풀기 목록으로 되돌림', body().indexOf('해결됨 1') >= 0 || qa('.li').length === 1, body().slice(0, 160));
+  qa('.tabs button')[0].click(); await wait(60);
+  eq('다시 볼 1건', qa('.li').length, 1);
+  t('다시 볼에 원인 태그', body().indexOf('예외·요건') >= 0);
   var openN = api().wrongList(true).length;
+  eq('오답노트 미해결 수', openN, 1);
   clickSel('#bar button[data-act="start-wrong"]'); await wait(70);
   eq('오답 집중 상한 10', api().session().ids.length, Math.min(10, openN));
   clickSel('#bar button[data-act="home"]'); await wait(60);
@@ -305,7 +315,15 @@ async function suite(){
     return b && b.subject === fs.subject && b.topic === fs.topic;
   });
   t('선택 단원 지문만', allSame);
-  clickSel('#bar button[data-act="home"]'); await wait(60);
+  /* 비데일리 세션의 이어서 카드 */
+  var fq = qOf(api().session().ids[0]);
+  clickSel('.pick.' + (fq.answer === 'O' ? 'o' : 'x')); await wait(50);
+  clickSel('#homebtn'); await wait(80);
+  t('집중 세션 이어서 카드', !!(q('.resume') && q('.resume button[data-act="resume"]')), body().slice(0, 120));
+  t('이어서 카드 라벨(집중)', (q('.resume') || {innerText:''}).innerText.indexOf('집중') >= 0);
+  clickSel('.resume button[data-act="resume"]'); await wait(60);
+  eq('집중 세션 이어서 2번째', api().session().i, 1);
+  clickSel('#homebtn'); await wait(60);
   api().start('focus', {subject:'회계학개론(말문제)', topic:'유형자산', n:10});
   await wait(60);
   var f5 = api().session();
