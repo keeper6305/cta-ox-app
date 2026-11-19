@@ -899,15 +899,15 @@ function navReplace(next){
 }
 function navHome(){
   if(!HSTACK.length){ view = {name:'home'}; render(); return; }
-  BACK.jumping = true;
+  /* 화면은 골바로 홈으로 — 히스토리 정리(history.go)는 뒤따라간다.
+     popstate를 기다리면 누를 때마다 한 박자 늦게 바뀌어 보인다. */
   var n = HSTACK.length;
+  BACK.jumping = true;
+  HSTACK = [];
+  view = {name:'home'};
+  render();
   try{ history.go(-n); }catch(e){}
-  setTimeout(function(){
-    if(BACK.jumping){
-      if(view.name !== 'home'){ HSTACK = []; view = {name:'home'}; render(); }
-      BACK.jumping = false;
-    }
-  }, 300);
+  setTimeout(function(){ BACK.jumping = false; }, 320);
 }
 function navTop(){
   var top = HSTACK.length ? HSTACK[HSTACK.length - 1] : {name:'home'};
