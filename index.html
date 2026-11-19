@@ -398,6 +398,13 @@ html[data-theme="dark"] .combo{color:var(--accent);}
 .bl.on::after{content:none;}
 .blhint{margin-top:8px; font-size:.76rem; color:var(--muted);}
 
+/* 짧은 선지에는 발문을 붙여 맥락을 보여 준다 */
+.stemctx{
+  margin-bottom:8px; padding:9px 12px; border-left:3px solid var(--line); border-radius:0 10px 10px 0;
+  background:var(--surface2); color:var(--muted); font-size:.82rem; line-height:1.55; word-break:keep-all;
+}
+.stemctx .lb{display:block; font-size:.68rem; font-weight:800; letter-spacing:.04em; color:var(--muted); opacity:.8; margin-bottom:2px;}
+
 /* 오답 원인 태그 */
 .rcause{margin-top:10px; padding:11px 12px; border:1px dashed var(--line); border-radius:14px; background:var(--surface);}
 .rcause .lb{font-size:.76rem; font-weight:800; color:var(--muted); margin-bottom:8px; line-height:1.45; word-break:keep-all;}
@@ -1650,9 +1657,11 @@ function renderQuiz(v, b){
     '<div class="qcount"><span>' + pos + ' / ' + s.ids.length + '</span>' +
       '<span class="rt">' + comboHTML + '<span>정답 ' + s.ok + ' · 오답 ' + (Object.keys(s.answered).length - s.ok) + '</span></span></div>' +
     '<div class="qwrap">' +
+    (q.q && q.q !== q.stmt && q.stmt.length < 20
+      ? '<div class="stemctx"><span class="lb">발문</span>' + esc(q.q) + '</div>' : '') +
     '<div class="stmt"><span class="qmark">Q.</span>' + (blindOn() ? blindHTML(q.stmt) : esc(q.stmt)) + '</div>' +
     (blindOn() && !isAnswered ? '<div class="blhint">가린 값을 먼저 떠올리고 탭해서 확인하세요.</div>' : '') +
-    (q.q && q.q !== q.stmt ? '<details class="origin"><summary>📄 이 선지의 문제 원문 보기</summary><div class="body">' + esc(q.q) + '</div></details>' : '') +
+    (q.q && q.q !== q.stmt && q.stmt.length >= 20 ? '<details class="origin"><summary>📄 이 선지의 문제 원문 보기</summary><div class="body">' + esc(q.q) + '</div></details>' : '') +
     (isAnswered ?
       '<div class="verdict ' + (correct ? 'good' : 'bad') + '">' +
         '<span class="big">' + (correct ? '✓' : '✕') + '</span>' +
