@@ -252,7 +252,8 @@ async function suite(){
   var inp = q('#sq');
   if(!inp) throw new Error('검색 입력창 없음(화면=' + api().view().name + ')');
   inp.value = '가산세';
-  inp.dispatchEvent(new W().Event('input', {bubbles:true}));
+  var Ev = W().Event;
+  inp.dispatchEvent(new Ev('input', {bubbles:true}));
   await wait(90);
   t('검색 결과 있음', qa('#sres .li').length > 0, body().slice(0, 120));
   t('결과 건수 표시', /건/.test((q('#scount') || {}).textContent || ''));
