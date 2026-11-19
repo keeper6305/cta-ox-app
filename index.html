@@ -1636,7 +1636,6 @@ function renderQuiz(v, b){
   }
 
   v.innerHTML =
-    '<div class="qwrap">' +
     '<div class="qhead">' +
       '<span class="chip subj">' + esc(shortName(q.subject)) + '</span>' +
       '<span class="chip tax">' + esc(q.topic) + '</span>' +
@@ -1650,6 +1649,7 @@ function renderQuiz(v, b){
     progHTML +
     '<div class="qcount"><span>' + pos + ' / ' + s.ids.length + '</span>' +
       '<span class="rt">' + comboHTML + '<span>정답 ' + s.ok + ' · 오답 ' + (Object.keys(s.answered).length - s.ok) + '</span></span></div>' +
+    '<div class="qwrap">' +
     '<div class="stmt"><span class="qmark">Q.</span>' + (blindOn() ? blindHTML(q.stmt) : esc(q.stmt)) + '</div>' +
     (blindOn() && !isAnswered ? '<div class="blhint">가린 값을 먼저 떠올리고 탭해서 확인하세요.</div>' : '') +
     (q.q && q.q !== q.stmt ? '<details class="origin"><summary>📄 이 선지의 문제 원문 보기</summary><div class="body">' + esc(q.q) + '</div></details>' : '') +
