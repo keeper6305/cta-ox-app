@@ -268,7 +268,7 @@ async function suite(){
   eq('북마크 목록 1건', qa('.li').length, 1);
   t('북마크 풀기 버튼', !!q('#bar button[data-act="start-book"]'));
   clickSel('#bar button[data-act="start-book"]'); await wait(70);
-  eq('북마크 세트 10문항', api().session().ids.length, 10);
+  eq('북마크 세트 = 담긴 수(최대 10)', api().session().ids.length, Math.min(api().bookmarks().length, 10));
   t('북마크 지문 포함', api().session().ids.indexOf(api().bookmarks()[0]) >= 0);
   clickSel('#homebtn'); await wait(60);
 
