@@ -53,7 +53,7 @@
 | `index.html` | 앱 전체(HTML+CSS+JS, 프레임워크 없음) |
 | `bank.js` | 문제은행 `window.BANK` (2,524지문, 1.95MB) |
 | `manifest.json` | PWA 매니페스트 (홈 화면 추가) |
-| `sw.js` | 오프라인 캐시 서비스 워커 (`sebeop-ox-v11-s3`) |
+| `sw.js` | 오프라인 캐시 서비스 워커 (`sebeop-ox-v11-s4`) |
 | `icon-*.png`, `favicon-32.png`, `apple-touch-icon.png` | 아이콘 |
 | `.nojekyll` | GitHub Pages의 Jekyll 처리 생략 |
 | `qa/index.html` | 360/390/430px 모바일 뷰포트 QA 하네스 |

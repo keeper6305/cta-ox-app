@@ -392,7 +392,7 @@ html[data-theme="dark"] .combo{color:var(--accent);}
 /* 숫자·기한 가리기 */
 .chip.blindc{font-family:inherit; cursor:pointer; border:1px solid var(--line); background:var(--surface);}
 .chip.blindc.on{background:var(--warn-bg); color:var(--warn); border-color:var(--warn);}
-.bl{background:var(--surface2); border-radius:5px; padding:0 6px; cursor:pointer; color:transparent; position:relative; user-select:none; -webkit-user-select:none;}
+.bl{background:var(--surface2); border-radius:4px; padding:0 4px; cursor:pointer; color:transparent; position:relative; user-select:none; -webkit-user-select:none;}
 .bl::after{content:'?'; position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); font-weight:900; font-size:.8em;}
 .bl.on{background:var(--hl-chip); color:inherit;}
 .bl.on::after{content:none;}
@@ -620,13 +620,13 @@ function suggestCause(q){
 }
 
 /* ─────────── 숫자·기한 가리기 ───────────
-   지문 안의 금액·기한·횟수를 가려 두고, 기억나는지 먼저 판단하게 한다.
+   숫자만 가리고 단위·조사는 남긴다("100분의 60" → "[?]분의 [?]") — 문장이 읽히면서 값은 기억으로 메꿔야 한다.
    조문 번호(§81조의4, 제16조)는 근거 찾기용이라 가리지 않는다. */
-var BL_RE = /([§제]\s?)?(\d[\d,]*(?:\.\d+)?)\s?(억|만|천)?\s?(원|%|％|일|개월|년|회|명|배|시간|점|개|조|항|호|분|차|기|월|주)?/g;
+var BL_RE = /([§제]\s?)?(\d[\d,]*(?:\.\d+)?)/g;
 function blindHTML(s){
-  return esc(s).replace(BL_RE, function(m, pre, num, big, unit){
+  return esc(s).replace(BL_RE, function(m, pre, num){
     if(pre) return m;
-    return '<b class="bl" data-bl="1">' + m + '</b>';
+    return '<b class="bl" data-bl="1">' + num + '</b>';
   });
 }
 function blindOn(){ return !!(S.flags && S.flags.blind); }
