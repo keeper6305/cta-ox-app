@@ -2157,11 +2157,21 @@ if(window.matchMedia){
   if(mq.addEventListener) mq.addEventListener('change', function(){ if((S.flags.theme || 'system') === 'system') applyTheme(); });
 }
 
-/* 서비스 워커 — ?qa=1 점검 모드에서는 등록하지 않고 기존 등록·캐시를 정리한다 */
+/* 서비스 워커 — ?qa=1 점검 모드에서는 등록하지 않고 이 앱의 기존 등록·캐시만 정리한다
+   (같은 도메인의 다른 앱 캐시는 건드리지 않는다) */
 if('serviceWorker' in navigator && location.protocol === 'https:'){
   if(/[?&]qa=1/.test(location.search)){
-    try{ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); }catch(e){}
-    try{ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }catch(e){}
+    var appBase = location.origin + location.pathname.replace(/[^\/]*$/, '');
+    try{
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        rs.forEach(function(r){ if(r.scope === appBase) r.unregister(); });
+      });
+    }catch(e){}
+    try{
+      caches.keys().then(function(ks){
+        ks.forEach(function(k){ if(k.indexOf('sebeop-ox-') === 0) caches.delete(k); });
+      });
+    }catch(e){}
   }else{
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('./sw.js').catch(function(e){ window.__errs.push('sw: ' + e.message); });
