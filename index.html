@@ -427,12 +427,16 @@ html[data-theme="dark"] .combo{color:var(--accent);}
 .weak .bd{min-width:0; flex:1;}
 .weak .t{font-weight:800; font-size:.94rem; letter-spacing:-.02em;}
 .weak .d{font-size:.75rem; color:var(--muted); font-weight:600; margin-top:1px; word-break:keep-all;}
-.weak .btn{width:auto; flex:none; min-height:44px;}
+.weak .btn{width:auto; flex:none; min-height:44px; white-space:nowrap; padding:8px 12px;}
 
 /* 퀴즈 내용 세로 정렬 */
 main#view.qz{display:flex; flex-direction:column;}
 .qwrap{margin:auto 0; width:100%;}
 .timeline{margin-top:10px; font-size:.78rem; color:var(--muted);}
+/* 결과 화면 버튼 묶음 — .btn의 width:100%가 행 안에서 두 번째 버튼을 짜부러뜨리지 않게 */
+.doneacts{display:flex; flex-direction:column; gap:8px;}
+.doneacts .row .btn, #bar .row .btn{width:auto; flex:1 1 0; min-width:0;}
+.topcta{margin-top:12px;}
 </style>
 </head>
 <body>
@@ -1540,12 +1544,14 @@ function renderExamResult(v, b){
   if(!e){ HSTACK = []; view = {name:'home'}; render(); return; }
   var rate = pct(e.ok, e.done);
   var wrongIds = e.items.filter(function(it){ return it.ok === false; });
+  var eids = wrongIds.map(function(it){ return it.id; });
   v.innerHTML =
     '<div class="card center" style="margin-top:12px">' +
       '<div class="muted tiny">' + esc(shortName(e.subject)) + ' ' + esc(e.year + ' ' + e.round) + ' 채점 결과</div>' +
       '<div class="score" style="--p:' + rate + '"><i>' + rate + '%</i></div>' +
       '<div class="muted">' + e.done + '문항 중 ' + e.ok + '문항 정답 · 오답 ' + (e.done - e.ok) + (e.items.length - e.done ? ' · 미응답 ' + (e.items.length - e.done) : '') + '</div>' +
     '</div>' +
+    (eids.length ? '<button class="btn primary topcta" type="button" data-act="retry" data-ids="' + esc(eids.join(',')) + '">✕ 틀린 ' + eids.length + '문항만 다시</button>' : '') +
     '<div class="list" style="margin-top:12px">' + e.items.map(function(it, i){
       var q = byId.get(it.id);
       var cls = it.ok === true ? 'right' : (it.ok === false ? 'wrong' : '');
@@ -1555,13 +1561,9 @@ function renderExamResult(v, b){
         '<span class="chip">' + esc(q.topic) + '</span></div>' +
         '<div class="acts"><button class="btn sm" type="button" data-act="review-one" data-id="' + esc(q.id) + '">해설 보기</button></div></div>';
     }).join('') + '</div>';
-  var eids = wrongIds.map(function(it){ return it.id; });
-  b.innerHTML = '<div class="doneacts">' +
-    (eids.length ? '<button class="btn primary" type="button" data-act="retry" data-ids="' + esc(eids.join(',')) + '">✕ 틀린 ' + eids.length + '문항만 다시</button>' : '') +
-    '<div class="row">' +
-      '<button class="btn" type="button" data-act="home">홈</button>' +
-      '<button class="btn' + (eids.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button>' +
-    '</div></div>';
+  b.innerHTML = '<div class="row">' +
+    '<button class="btn" type="button" data-act="home">홈</button>' +
+    '<button class="btn' + (eids.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button></div>';
 }
 
 /* 오답 원인 태그 — 틀린 직후 한 번 고르면 약점 통계에 쌓인다 */
@@ -1737,6 +1739,7 @@ function renderDone(v, b){
       '<p class="muted" style="margin-top:10px">' + msg + '</p>' +
       (rate >= 90 && done ? '<div class="tiny" style="margin-top:6px;font-weight:800;color:var(--primary)">🎉 좋아요, 이 회독이 쌓이고 있습니다</div>' : '') +
     '</div>' +
+    (wIds.length ? '<button class="btn primary topcta" type="button" data-act="retry" data-ids="' + esc(wIds.join(',')) + '">✕ 틀린 ' + wIds.length + '지문만 다시</button>' : '') +
     '<div class="grid2" style="margin-top:12px">' +
       '<div class="stat"><b>' + scopeTotals().n + '</b><span>누적 풀이</span></div>' +
       '<div class="stat"><b>' + open.length + '</b><span>오답노트(미해결)</span></div>' +
@@ -1753,12 +1756,9 @@ function renderDone(v, b){
         }).join('') + '</div>' + (ids.length > 8 ? '<p class="muted tiny" style="margin-top:8px">외 ' + (ids.length - 8) + '문항은 오답노트에 있습니다.</p>' : '');
       })() +
     '</div>';
-  b.innerHTML = '<div class="doneacts">' +
-    (wIds.length ? '<button class="btn primary" type="button" data-act="retry" data-ids="' + esc(wIds.join(',')) + '">✕ 틀린 ' + wIds.length + '지문만 다시</button>' : '') +
-    '<div class="row">' +
-      '<button class="btn" type="button" data-act="home">홈</button>' +
-      '<button class="btn' + (wIds.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button>' +
-    '</div></div>';
+  b.innerHTML = '<div class="row">' +
+    '<button class="btn" type="button" data-act="home">홈</button>' +
+    '<button class="btn' + (wIds.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button></div>';
 }
 
 function renderWrong(v, b){
@@ -1845,7 +1845,7 @@ function renderStats(v, b){
     '</div>';
   var wk5 = weakness(5);
   var rowsWeak = '<div class="card" style="margin-top:12px"><h3>약점 TOP 5</h3>' +
-    '<p class="muted tiny" style="margin-bottom:10px">정답률이 낮은 단원부터. «풀기»는 10문항만 바로 냅니다.</p>' +
+    '<p class="muted tiny" style="margin-bottom:10px">정답률 낮은 단원 → 아직 안 본 단원 순. «풀기»는 10문항만 바로 냅니다.</p>' +
     wk5.map(function(w){
       return '<div class="spread" style="margin-bottom:10px;gap:8px">' +
         '<div style="min-width:0"><div style="font-weight:800;font-size:.86rem;word-break:keep-all">' + esc(shortName(w.subject)) + ' · ' + esc(w.topic) + '</div>' +

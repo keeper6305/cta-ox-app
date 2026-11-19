@@ -204,13 +204,16 @@ async function suite(){
   eq('완료 화면', api().view().name, 'done');
   t('점수 링', !!q('.score'));
   t('평균 소요/콤보 메타', body().indexOf('연속 정답') >= 0 || body().indexOf('초/문항') >= 0, body().slice(0, 200));
-  t('틀린 지문만 다시 버튼', !!q('#bar button[data-act="retry"]'));
+  t('틀린 지문만 다시 버튼', !!q('button[data-act="retry"]'));
   t('틀린 지문 카드', body().indexOf('이번 세션에서 틀린 지문') >= 0);
+  var fbtns = qa('#bar .row .btn');
+  t('하단 버튼 짜부러짐 없음', fbtns.length === 2 && fbtns.every(function(x){ var r = x.getBoundingClientRect(); return r.width > 90 && r.height < 80; }),
+    fbtns.map(function(x){ var r = x.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); }).join(' / '));
 
   log('sec', 'C. 틀린 지문만 다시');
-  var retryN = q('#bar button[data-act="retry"]').getAttribute('data-ids').split(',').length;
+  var retryN = q('button[data-act="retry"]').getAttribute('data-ids').split(',').length;
   eq('다시 풀 문항 = 틀린 수', retryN, 2);
-  clickSel('#bar button[data-act="retry"]'); await wait(80);
+  clickSel('button[data-act="retry"]'); await wait(80);
   eq('재도전 2문항', api().session().ids.length, 2);
   eq('재도전 모드', api().session().mode, 'retry');
   for(var r2 = 0; r2 < 2; r2++){
@@ -297,10 +300,10 @@ async function suite(){
   eq('채점 결과 화면', api().view().name, 'examresult');
   t('채점 링', !!q('.score'));
   t('문항별 O/X', qa('.li.right').length + qa('.li.wrong').length === 3);
-  t('틀린 문항만 다시 버튼', !!q('#bar button[data-act="retry"]'));
-  var eN = q('#bar button[data-act="retry"]').getAttribute('data-ids').split(',').length;
+  t('틀린 문항만 다시 버튼', !!q('button[data-act="retry"]'));
+  var eN = q('button[data-act="retry"]').getAttribute('data-ids').split(',').length;
   t('틀린 수 일치', eN === (3 - api().examResult().ok), 'n=' + eN + ' ok=' + api().examResult().ok);
-  clickSel('#bar button[data-act="retry"]'); await wait(80);
+  clickSel('button[data-act="retry"]'); await wait(80);
   eq('답안지→틀린 세트', api().session().ids.length, eN);
   clickSel('#homebtn'); await wait(60);
 
