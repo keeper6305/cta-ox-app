@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세무사 OX v11 — 전수 클릭 QA</title>
+<style>
+  body{margin:0;background:#1b1f2a;color:#e8edf7;font:13px/1.5 system-ui,-apple-system,"Malgun Gothic",sans-serif}
+  h1{font-size:15px;margin:10px 14px 6px;color:#9fb3d1}
+  .sum{margin:0 14px 8px;font-weight:800;font-size:14px}
+  .sum b.ok{color:#34d399} .sum b.ng{color:#f87171}
+  .wrap{display:flex;gap:16px;padding:0 14px 24px;align-items:flex-start}
+  .frame{background:#0d1017;border-radius:12px;padding:6px;flex:none}
+  .frame .cap{font-size:11px;color:#8fa3c0;margin:0 0 5px 3px}
+  iframe{border:0;display:block;background:#fff;border-radius:6px}
+  #log{flex:1;min-width:340px;max-height:78vh;overflow:auto;background:#0d1017;border-radius:12px;padding:10px 12px}
+  .r{display:flex;gap:8px;padding:2px 0;border-bottom:1px solid #1c2433}
+  .r .s{font-weight:900;flex:none;width:38px}
+  .r.pass .s{color:#34d399} .r.fail .s{color:#f87171}
+  .r .n{flex:1}
+  .r .x{color:#fca5a5;font-size:11px;word-break:break-all;max-width:46%}
+  .sec{margin:9px 0 2px;color:#7dd3fc;font-weight:800}
+</style>
+</head>
+<body>
+<h1>세무사 1차 OX v11 · 전수 클릭 QA (360 / 390)</h1>
+<div class="sum" id="sum">준비 중…</div>
+<div class="wrap">
+  <div class="frame"><p class="cap">360 × 780</p><iframe id="f360" width="360" height="780"></iframe></div>
+  <div class="frame"><p class="cap">390 × 844</p><iframe id="f390" width="390" height="844"></iframe></div>
+  <div id="log"></div>
+</div>
+<script>
+var P = 0, F = 0, LOG = [];
+function log(kind, name, extra){
+  LOG.push({kind:kind, name:name, extra:extra || ''});
+  var box = document.getElementById('log');
+  if(kind === 'sec'){
+    var d = document.createElement('div'); d.className = 'sec'; d.textContent = name; box.appendChild(d); return;
+  }
+  if(kind === 'pass') P++; else F++;
+  var r = document.createElement('div');
+  r.className = 'r ' + kind;
+  r.innerHTML = '<span class="s">' + (kind === 'pass' ? 'PASS' : 'FAIL') + '</span><span class="n"></span>' + (extra ? '<span class="x"></span>' : '');
+  r.querySelector('.n').textContent = name;
+  if(extra) r.querySelector('.x').textContent = String(extra).slice(0, 300);
+  box.appendChild(r);
+}
+function t(name, cond, extra){ log(cond ? 'pass' : 'fail', name, cond ? '' : extra); return !!cond; }
+function eq(name, a, b){ return t(name, a === b, 'got ' + JSON.stringify(a) + ' want ' + JSON.stringify(b)); }
+function summ(){
+  document.getElementById('sum').innerHTML = 'PASS <b class="ok">' + P + '</b> · FAIL <b class="ng">' + F + '</b>';
+  window.__QA = {pass:P, fail:F, logs:LOG};
+}
+function wait(ms){ return new Promise(function(r){ setTimeout(r, ms || 60); }); }
+
+var FID = 'f360';
+function fr(){ return document.getElementById(FID); }
+function W(){ return fr().contentWindow; }
+function D(){ return fr().contentDocument; }
+function q(sel){ return D().querySelector(sel); }
+function qa(sel){ return Array.prototype.slice.call(D().querySelectorAll(sel)); }
+function body(){ return D().body.innerText || ''; }
+function api(){ return W().__sebeop; }
+function click(el){ if(!el) return false; el.click(); return true; }
+function clickSel(sel){ return click(q(sel)); }
+function loadFrame(id, w, h){
+  return new Promise(function(res){
+    var f = document.getElementById(id);
+    f.width = w; f.height = h;
+    var done = false;
+    f.onload = function(){ if(done) return; done = true; setTimeout(res, 340); };
+    f.src = '../index.html?qa=1&h=' + Date.now();
+  });
+}
+function reload(){
+  return new Promise(function(res){
+    var f = fr(), done = false;
+    f.onload = function(){ if(done) return; done = true; setTimeout(res, 360); };
+    f.contentWindow.location.reload();
+  });
+}
+function reset(){
+  try{ W().localStorage.removeItem('sebeop_ox_v1'); }catch(e){}
+  return reload();
+}
+function qOf(id){ return api().bank.filter(function(x){ return x.id === id; })[0]; }
+
+async function run(){
+  FID = 'f360';
+  await loadFrame('f360', 360, 780);
+  await loadFrame('f390', 390, 844);
+  FID = 'f360';
+  await reset();
+  await suite();
+
+  log('sec', 'K. 390px 뷰포트');
+  FID = 'f390';
+  await reset();
+  t('390 홈 렌더', !!q('.goal'));
+  var cw390 = D().documentElement.clientWidth;
+  t('390 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw390 + 1);
+  clickSel('#bar button[data-act="daily"]');
+  await wait(80);
+  eq('390 데일리 10문항', api().session().ids.length, 10);
+  eq('390 도트 10개', qa('.dots i').length, 10);
+  t('390 O/X 버튼 보임', !!q('.pick.o'));
+  t('390 콘솔 오류 0건', (W().__errs || []).length === 0, JSON.stringify(W().__errs || []));
+  FID = 'f360';
+  summ();
+}
+
+async function suite(){
+  var S;
+  await wait(420);   /* 스플래시 사라질 시간 */
+
+  log('sec', 'A. 홈 · 오늘 목표 게이지');
+  t('앱이 그려졌다', q('#view').innerHTML.length > 500);
+  t('스플래시가 사라졌다', q('#splash').classList.contains('off'));
+  eq('제목', D().title, '세무사 1차 OX · 전과목');
+  eq('과목 칩 5개', qa('.subjtabs button').length, 5);
+  t('D-day 표시', /D-\d+/.test(body()), body().slice(0, 80));
+  t('오늘 목표 게이지 있음', !!q('.goal .segs'));
+  eq('목표 칸 10개', qa('.goal .segs i').length, 10);
+  eq('처음엔 채워진 칸 0', qa('.goal .segs i.on').length, 0);
+  t('남은 10문항 안내', body().indexOf('남은 10문항') >= 0);
+  t('매일 10문항 고정 문구', body().indexOf('매일 10문항 고정') >= 0);
+  t('약점 카드 있음', !!q('.weak') && !!q('.weak button[data-act="start-weak"]'));
+  eq('퀵 액션 4개', qa('.quick .qbtn').length, 4);
+  t('하단 데일리 버튼', !!q('#bar button[data-act="daily"]'));
+  eq('처음 총 풀이 0', api().totals().n, 0);
+  t('오늘은 아직 시작 전', body().indexOf('오늘은 아직 시작 전') >= 0);
+
+  log('sec', 'B. 데일리 10문항 · 도트 · 즉시저장');
+  clickSel('#bar button[data-act="daily"]');
+  await wait(90);
+  S = api().session();
+  eq('데일리 세트 10문항', S.ids.length, 10);
+  eq('화면 quiz', api().view().name, 'quiz');
+  eq('도트 10개', qa('.dots i').length, 10);
+  eq('현재 도트 1개', qa('.dots i.cur').length, 1);
+  t('첫 문항 1 / 10', body().indexOf('1 / 10') >= 0);
+  t('O/X 버튼', !!q('.pick.o') && !!q('.pick.x'));
+  t('모르겠음 버튼', body().indexOf('모르겠음') >= 0);
+  t('숫자 가리기 칩 기본 OFF', (q('.chip.blindc') || {className:''}).className.indexOf('on') < 0);
+  var q1 = qOf(S.ids[0]);
+  clickSel('.pick.' + (q1.answer === 'O' ? 'x' : 'o'));
+  await wait(70);
+  t('오답 판정', body().indexOf('오답입니다') >= 0);
+  t('오답 원인 태그', !!q('.rcause'));
+  eq('원인 태그 4개', qa('.rcause button').length, 4);
+  eq('도트 빨강 1개', qa('.dots i.ng').length, 1);
+  t('카운터 정답0·오답1', body().indexOf('정답 0 · 오답 1') >= 0);
+  t('해설 핵심 이유', body().indexOf('핵심 이유') >= 0);
+  t('내 메모 접힘', !!q('details.memo'));
+  t('AI에게 묻기', body().indexOf('AI에게 묻기') >= 0);
+  clickSel('.rcause button[data-c="num"]');
+  await wait(60);
+  eq('원인 태그 저장', (api().rc()[S.ids[0]] || {}).c, 'num');
+  t('원인 태그 라벨 갱신', q('.rcause .lb').innerText.indexOf('숫자·기한') >= 0);
+  clickSel('.rcause button[data-c="num"]');
+  await wait(50);
+  t('같은 태그 다시 → 해제', !api().rc()[S.ids[0]]);
+  clickSel('.rcause button[data-c="exc"]');
+  await wait(50);
+  eq('다른 태그로 교체', (api().rc()[S.ids[0]] || {}).c, 'exc');
+
+  clickSel('#bar button[data-act="next"]');
+  await wait(50);
+  var sawCombo = false;
+  var seq = [true, true, false];
+  for(var k = 0; k < 3; k++){
+    var ss = api().session();
+    var qq = qOf(ss.ids[ss.i]);
+    var want = qq.answer;
+    if(!seq[k]) want = (want === 'O' ? 'X' : 'O');
+    clickSel('.pick.' + (want === 'O' ? 'o' : 'x'));
+    await wait(45);
+    if(api().session().combo >= 2 && body().indexOf('연속') >= 0) sawCombo = true;
+    if(k < 2){ clickSel('#bar button[data-act="next"]'); await wait(45); }
+  }
+  t('연속 정답 콤보 표시', sawCombo, 'combo=' + api().session().combo);
+  eq('최고 연속 2', api().session().best, 2);
+  eq('도트 정답 2개', qa('.dots i.ok').length, 2);
+  t('풀던 세션 저장', !!api().resume() && api().resume().ids.length === 10);
+  clickSel('#bar button[data-act="next"]'); await wait(50);
+  clickSel('#homebtn'); await wait(90);
+  eq('헤더 ← 로 홈 복귀', api().view().name, 'home');
+  t('데일리 이어서 버튼', q('#bar button[data-act="daily"]').innerText.indexOf('이어서') >= 0, q('#bar button[data-act="daily"]').innerText);
+  eq('목표 게이지 4칸', qa('.goal .segs i.on').length, 4);
+  clickSel('#bar button[data-act="daily"]'); await wait(70);
+  eq('데일리 이어서 5번째 문항', api().session().i, 4);
+  eq('복원 정답 수 2', api().session().ok, 2);
+  t('복원 도트(정답2·오답2)', qa('.dots i.ok').length === 2 && qa('.dots i.ng').length === 2);
+
+  for(var j = 0; j < 6; j++){
+    var s2 = api().session();
+    var q2 = qOf(s2.ids[s2.i]);
+    clickSel('.pick.' + (q2.answer === 'O' ? 'o' : 'x'));
+    await wait(40);
+    clickSel('#bar button[data-act="next"]');
+    await wait(40);
+  }
+  eq('완료 화면', api().view().name, 'done');
+  t('점수 링', !!q('.score'));
+  t('평균 소요/콤보 메타', body().indexOf('연속 정답') >= 0 || body().indexOf('초/문항') >= 0, body().slice(0, 200));
+  t('틀린 지문만 다시 버튼', !!q('button[data-act="retry"]'));
+  t('틀린 지문 카드', body().indexOf('이번 세션에서 틀린 지문') >= 0);
+  var fbtns = qa('#bar .row .btn');
+  t('하단 버튼 짜부러짐 없음', fbtns.length === 2 && fbtns.every(function(x){ var r = x.getBoundingClientRect(); return r.width > 90 && r.height < 80; }),
+    fbtns.map(function(x){ var r = x.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); }).join(' / '));
+
+  log('sec', 'C. 틀린 지문만 다시');
+  var retryN = q('button[data-act="retry"]').getAttribute('data-ids').split(',').length;
+  eq('다시 풀 문항 = 틀린 수', retryN, 2);
+  clickSel('button[data-act="retry"]'); await wait(80);
+  eq('재도전 2문항', api().session().ids.length, 2);
+  eq('재도전 모드', api().session().mode, 'retry');
+  for(var r2 = 0; r2 < 2; r2++){
+    var s3 = api().session();
+    var q3 = qOf(s3.ids[s3.i]);
+    clickSel('.pick.' + (q3.answer === 'O' ? 'o' : 'x'));
+    await wait(40);
+    clickSel('#bar button[data-act="next"]');
+    await wait(40);
+  }
+  eq('재도전 완료', api().view().name, 'done');
+  t('100% 링', body().indexOf('100%') >= 0);
+  t('재도전 라벨(완료 화면)', body().indexOf('틀린 지문 다시') >= 0, body().slice(0, 120));
+
+  log('sec', 'D. 오답노트 탭 · 해결/되돌리기 · 검색 · 북마크');
+  clickSel('#bar button[data-act="home"]'); await wait(70);
+  clickSel('button[data-act="wrong"]'); await wait(60);
+  eq('오답노트 화면', api().view().name, 'wrong');
+  t('다시 볼 탭', body().indexOf('다시 볼') >= 0);
+  t('모름 탭', body().indexOf('모름') >= 0);
+  t('해결됨 탭', body().indexOf('해결됨') >= 0);
+  eq('해결됨 2건', qa('.tabs button')[2].innerText.replace(/[^0-9]/g, ''), '2');
+  t('다시 볼은 0건 안내', body().indexOf('다시 볼 문항이 없습니다') >= 0, body().slice(0, 140));
+  qa('.tabs button')[2].click(); await wait(60);
+  t('해결됨 목록 2건', qa('.li').length === 2, 'li=' + qa('.li').length);
+  t('해결됨에 원인 태그', body().indexOf('예외·요건') >= 0, body().slice(0, 200));
+  clickSel('.li button[data-act="unresolve"]'); await wait(60);
+  t('다시 풀기 목록으로 되돌림', body().indexOf('해결됨 1') >= 0 || qa('.li').length === 1, body().slice(0, 160));
+  qa('.tabs button')[0].click(); await wait(60);
+  eq('다시 볼 1건', qa('.li').length, 1);
+  t('다시 볼 행에 칩 렌더', qa('.li .chip').length >= 2, 'chips=' + qa('.li .chip').length);
+  var openN = api().wrongList(true).length;
+  eq('오답노트 미해결 수', openN, 1);
+  clickSel('#bar button[data-act="start-wrong"]'); await wait(70);
+  eq('오답 집중 상한 10', api().session().ids.length, Math.min(10, openN));
+  clickSel('#homebtn'); await wait(60);
+
+  clickSel('button[data-act="search"]'); await wait(60);
+  var inp = q('#sq');
+  if(!inp) throw new Error('검색 입력창 없음(화면=' + api().view().name + ')');
+  inp.value = '가산세';
+  var Ev = W().Event;
+  inp.dispatchEvent(new Ev('input', {bubbles:true}));
+  await wait(90);
+  t('검색 결과 있음', qa('#sres .li').length > 0, body().slice(0, 120));
+  t('결과 건수 표시', /건/.test((q('#scount') || {}).textContent || ''));
+  var firstHit = q('#sres .li .q').innerText.slice(0, 12);
+  clickSel('#sres .li button[data-act="solve-one"]'); await wait(80);
+  eq('검색에서 바로 풀기', api().session().ids.length, 1);
+  t('검색한 지문 표시', body().indexOf(firstHit) >= 0);
+  clickSel('button[data-act="bookq"]'); await wait(60);
+  eq('북마크 저장', api().bookmarks().length, 1);
+  clickSel('#homebtn'); await wait(60);
+  clickSel('button[data-act="book"]'); await wait(50);
+  eq('북마크 목록 1건', qa('.li').length, 1);
+  t('북마크 풀기 버튼', !!q('#bar button[data-act="start-book"]'));
+  clickSel('#bar button[data-act="start-book"]'); await wait(70);
+  eq('북마크 세트 = 담긴 수(최대 10)', api().session().ids.length, Math.min(api().bookmarks().length, 10));
+  t('북마크 지문 포함', api().session().ids.indexOf(api().bookmarks()[0]) >= 0);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'E. 기출 회차 → 답안지 일괄 채점');
+  clickSel('button[data-act="rounds"]'); await wait(60);
+  eq('회차 화면', api().view().name, 'rounds');
+  t('회차 행 렌더', qa('.taxrow').length >= 10, 'rows=' + qa('.taxrow').length);
+  t('답안지 버튼 있음', !!q('button[data-act="start-exam"]'));
+  clickSel('button[data-act="start-exam"]'); await wait(80);
+  eq('답안지 화면', api().view().name, 'exam');
+  var examItems = api().exam().items.length;
+  t('답안지 문항 렌더', qa('.xrow').length === examItems, 'rows=' + qa('.xrow').length + ' items=' + examItems);
+  clickSel('.xtgl button[data-v="O"]'); await wait(40);
+  t('O 표시', !!q('.xtgl button.on.o'));
+  clickSel('.xrow .xtgl button[data-v="O"]'); await wait(30);
+  t('다시 누르면 해제', !q('.xtgl button.on'));
+  var xrows = qa('.xrow');
+  xrows[0].querySelector('button[data-v="O"]').click();
+  xrows[1].querySelector('button[data-v="X"]').click();
+  xrows[2].querySelector('button[data-v="O"]').click();
+  await wait(50);
+  t('답안지 중도 저장', !!api().state.exdraft);
+  t('채점 카운터 3 /', q('#xsubmit').innerText.indexOf('3 / ') >= 0, q('#xsubmit').innerText);
+  W().confirm = function(){ return true; };
+  clickSel('#xsubmit'); await wait(100);
+  eq('채점 결과 화면', api().view().name, 'examresult');
+  t('채점 링', !!q('.score'));
+  t('문항별 O/X', qa('.li.right').length + qa('.li.wrong').length === 3);
+  t('틀린 문항만 다시 버튼', !!q('button[data-act="retry"]'));
+  var eN = q('button[data-act="retry"]').getAttribute('data-ids').split(',').length;
+  t('틀린 수 일치', eN === (3 - api().examResult().ok), 'n=' + eN + ' ok=' + api().examResult().ok);
+  clickSel('button[data-act="retry"]'); await wait(80);
+  eq('답안지→틀린 세트', api().session().ids.length, eN);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'F. 단원 집중 · 약점 집중');
+  clickSel('button[data-act="topics"]'); await wait(60);
+  eq('집중 화면', api().view().name, 'topics');
+  t('단원 행 50+', qa('.taxrow').length >= 50, 'rows=' + qa('.taxrow').length);
+  clickSel('.taxrow button[data-act="start-focus"]'); await wait(80);
+  var fs = api().session();
+  eq('집중 세트 10문항', fs.ids.length, 10);
+  eq('집중 모드', fs.mode, 'focus');
+  var allSame = fs.ids.every(function(id){
+    var b = qOf(id);
+    return b && b.subject === fs.subject && b.topic === fs.topic;
+  });
+  t('선택 단원 지문만', allSame);
+  /* 비데일리 세션의 이어서 카드 */
+  var fq = qOf(api().session().ids[0]);
+  clickSel('.pick.' + (fq.answer === 'O' ? 'o' : 'x')); await wait(50);
+  clickSel('#homebtn'); await wait(80);
+  t('집중 세션 이어서 카드', !!(q('.resume') && q('.resume button[data-act="resume"]')), body().slice(0, 120));
+  t('이어서 카드 라벨(집중)', (q('.resume') || {innerText:''}).innerText.indexOf('집중') >= 0);
+  clickSel('.resume button[data-act="resume"]'); await wait(60);
+  eq('집중 세션 이어서 2번째', api().session().i, 1);
+  clickSel('#homebtn'); await wait(60);
+  api().start('focus', {subject:'회계학개론(말문제)', topic:'유형자산', n:10});
+  await wait(60);
+  var f5 = api().session();
+  eq('지문 5개 단원도 10문항', f5.ids.length, 10);
+  t('보충 안내 문구', !!f5.note && f5.note.indexOf('더 넣었습니다') >= 0, f5.note);
+  api().HOME(); await wait(60);
+  var weak = api().weakness(1)[0];
+  t('약점 후보 계산', !!weak && !!weak.topic, JSON.stringify(weak));
+  clickSel('.weak button[data-act="start-weak"]'); await wait(80);
+  var ws = api().session();
+  eq('약점 집중 10문항', ws.ids.length, 10);
+  eq('약점 과목 일치', ws.subject, weak.subject);
+  eq('약점 단원 일치', ws.topic, weak.topic);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'G. 숫자·기한 가리기');
+  var numQ = api().bank.filter(function(x){ return /\d/.test(x.stmt) && /원|%|일|년|회|개월|시간/.test(x.stmt) && x.stmt.length < 110; })[0];
+  t('숫자 지문 확보', !!numQ, numQ ? numQ.id : 'none');
+  api().setBlind(true); await wait(60);
+  t('가리기 켜짐', api().state.flags.blind === true);
+  api().startRetry([numQ.id]); await wait(80);
+  var bls = qa('.bl');
+  t('지문에 가린 값 표시', bls.length > 0, 'masked=' + bls.length);
+  var bl = bls[0];
+  var colBefore = W().getComputedStyle(bl).color;
+  var txtBefore = bl.innerText;
+  t('가린 값은 투명 처리', /rgba\(0, 0, 0, 0\)/.test(colBefore), colBefore);
+  click(bl); await wait(40);
+  t('탭하면 값이 보인다', bl.classList.contains('on'));
+  t('값이 실제로 보임', !/rgba\(0, 0, 0, 0\)/.test(W().getComputedStyle(bl).color), W().getComputedStyle(bl).color);
+  t('가린 값 안내', body().indexOf('탭하면 숫자·기한이 보입니다') >= 0);
+  t('조문 번호는 가리지 않음', api().blindHTML('행정소송법 §12 위반').indexOf('class="bl"') < 0, api().blindHTML('행정소송법 §12 위반'));
+  t('금액·기한은 가림', api().blindHTML('3년 이내 50%').indexOf('class="bl"') >= 0, api().blindHTML('3년 이내 50%'));
+  clickSel('.chip.blindc'); await wait(60);
+  t('가리기 끄기', api().state.flags.blind === false);
+  eq('끄면 가린 값 0', qa('.bl').length, 0);
+  api().HOME(); await wait(50);
+
+  log('sec', 'H. 통계 · 테마 · 뒤로가기');
+  clickSel('#statsbtn'); await wait(70);
+  eq('통계 화면', api().view().name, 'stats');
+  t('최근 7일', body().indexOf('최근 7일') >= 0);
+  t('약점 TOP 5', body().indexOf('약점 TOP 5') >= 0);
+  t('내 오답 원인', body().indexOf('내 오답 원인') >= 0);
+  t('문항 평균 소요', body().indexOf('문항 평균 소요') >= 0);
+  eq('오답 원인 분포 4행', qa('.causerow').length, 4);
+  t('백업 · 복원', body().indexOf('백업 · 복원') >= 0);
+  t('초기화 버튼', !!q('button[data-act="reset"]'));
+  var errsBefore = (W().__errs || []).length;
+  clickSel('button[data-act="export"]'); await wait(80);
+  eq('백업 내보내기 오류 없음', (W().__errs || []).length, errsBefore);
+  t('내보내기 토스트', (q('#toast') || {}).innerText.indexOf('백업') >= 0, (q('#toast') || {}).innerText);
+  var themes = [];
+  for(var th = 0; th < 3; th++){ clickSel('#themebtn'); await wait(45); themes.push(D().documentElement.getAttribute('data-theme')); }
+  t('테마 3단 전환', themes.indexOf('dark') >= 0 && themes.indexOf('light') >= 0, themes.join(','));
+  clickSel('#themebtn'); await wait(40);
+  t('테마 속성 있음', ['dark','light'].indexOf(D().documentElement.getAttribute('data-theme')) >= 0);
+  clickSel('button[data-act="home"]'); await wait(60);
+  clickSel('#bar button[data-act="daily"]'); await wait(70);
+  eq('뒤로가기 전 quiz', api().view().name, 'quiz');
+  W().history.back(); await wait(160);
+  eq('뒤로가기 1회 → 홈', api().view().name, 'home');
+  W().history.back(); await wait(160);
+  t('홈에서 1회는 종료 안내', (q('#toast') || {}).innerText.indexOf('한 번 더') >= 0, (q('#toast') || {}).innerText);
+  t('앱 살아 있음', q('#view').innerHTML.length > 300);
+
+  log('sec', 'I. 레이아웃(360) · 콘솔');
+  async function overflowCheck(name){
+    await wait(50);
+    var de = D().documentElement;
+    var sw = Math.max(de.scrollWidth, D().body.scrollWidth), cw = de.clientWidth;
+    t(name + ' 가로 넘침 없음', sw <= cw + 1, 'scrollW=' + sw + ' clientW=' + cw);
+    var wide = qa('#view *').filter(function(e){
+      var r = e.getBoundingClientRect();
+      return r.width > cw + 2 || r.right > cw + 3;
+    }).map(function(e){ return (e.className || e.tagName) + ':' + Math.round(e.getBoundingClientRect().width); }).slice(0, 3);
+    t(name + ' 요소 넘침 없음', wide.length === 0, wide.join(' | '));
+  }
+  api().HOME(); await wait(70); await overflowCheck('홈');
+  clickSel('#statsbtn'); await wait(70); await overflowCheck('통계');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('button[data-act="wrong"]'); await wait(60); await overflowCheck('오답노트');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('button[data-act="rounds"]'); await wait(60); await overflowCheck('회차');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('button[data-act="search"]'); await wait(60); await overflowCheck('검색');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('#bar button[data-act="daily"]'); await wait(70); await overflowCheck('학습');
+  t('콘솔 오류 0건', (W().__errs || []).length === 0, JSON.stringify(W().__errs || []));
+}
+
+run().catch(function(e){
+  log('fail', '스크립트 예외', String(e && e.stack || e));
+  summ();
+});
+</script>
+</body>
+</html>
