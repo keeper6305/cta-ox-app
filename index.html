@@ -364,6 +364,68 @@ details.memo textarea{
   .resume .d{font-size:.72rem;}
   .resume .g .btn{padding:7px 10px; font-size:.82rem;}
 }
+
+/* ═══════════ v11 · 학습 루프 강화 ═══════════ */
+/* 오늘 목표 게이지 (히어로) */
+.goal{margin-top:13px; padding-top:11px; border-top:1px solid rgba(255,255,255,.17);}
+.goal .top{display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:.76rem; font-weight:800; color:rgba(255,255,255,.84);}
+.goal .top .n{font-size:1.02rem; letter-spacing:-.03em; color:#fff;}
+.goal .top .n em{font-style:normal; font-size:.76rem; opacity:.7; font-weight:700;}
+.goal .segs{display:flex; gap:3px; margin-top:7px;}
+.goal .segs i{flex:1 1 0; height:7px; border-radius:99px; background:rgba(255,255,255,.22); min-width:2px;}
+.goal .segs i.on{background:linear-gradient(90deg,#fff,#dcd9ff);}
+.goal .foot{display:flex; justify-content:space-between; gap:8px; margin-top:6px; font-size:.71rem; color:rgba(255,255,255,.76);}
+.badge-done{display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,.2); color:#fff; border-radius:999px; padding:2px 9px; font-size:.7rem; font-weight:800;}
+
+/* 진행 도트 · 콤보 */
+.dots{display:flex; gap:4px; margin:2px 0 9px;}
+.dots i{flex:1 1 0; height:6px; border-radius:99px; background:var(--surface2); min-width:2px; transition:background .18s;}
+.dots i.ok{background:var(--ok);}
+.dots i.ng{background:var(--ng);}
+.dots i.cur{background:var(--primary); box-shadow:0 0 0 3px var(--ring);}
+.qcount .rt{display:flex; align-items:center; gap:7px;}
+.combo{font-weight:900; color:#d97706; font-size:.76rem; letter-spacing:-.01em;}
+html[data-theme="dark"] .combo{color:var(--accent);}
+.combo.hot{animation:pop2 .34s cubic-bezier(.2,.9,.2,1);}
+@keyframes pop2{from{transform:scale(.78)} to{transform:scale(1)}}
+
+/* 숫자·기한 가리기 */
+.chip.blindc{font-family:inherit; cursor:pointer; border:1px solid var(--line); background:var(--surface);}
+.chip.blindc.on{background:var(--warn-bg); color:var(--warn); border-color:var(--warn);}
+.bl{background:var(--surface2); border-radius:5px; padding:0 6px; cursor:pointer; color:transparent; position:relative; user-select:none; -webkit-user-select:none;}
+.bl::after{content:'?'; position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); font-weight:900; font-size:.8em;}
+.bl.on{background:var(--hl-chip); color:inherit;}
+.bl.on::after{content:none;}
+.blhint{margin-top:8px; font-size:.76rem; color:var(--muted);}
+
+/* 오답 원인 태그 */
+.rcause{margin-top:10px; padding:11px 12px; border:1px dashed var(--line); border-radius:14px; background:var(--surface);}
+.rcause .lb{font-size:.76rem; font-weight:800; color:var(--muted); margin-bottom:8px; line-height:1.45; word-break:keep-all;}
+.rcause .opts{display:flex; flex-wrap:wrap; gap:6px;}
+.rcause button{
+  border:1px solid var(--line); background:var(--surface); color:var(--text); font-family:inherit;
+  font-size:.8rem; font-weight:700; padding:7px 11px; border-radius:999px; cursor:pointer; white-space:nowrap;
+}
+.rcause button.on{background:var(--primary); color:var(--primary-ink); border-color:transparent;}
+.rcause button.sug{box-shadow:0 0 0 2px var(--ring);}
+.causerow{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;}
+.causerow .cr{display:flex; align-items:center; gap:7px; font-size:.8rem; font-weight:700; min-width:0;}
+.causerow .bar2{flex:1 1 60px; height:7px; border-radius:99px; background:var(--surface2); overflow:hidden;}
+.causerow .bar2 i{display:block; height:100%; border-radius:99px; background:var(--primary);}
+
+/* 오늘의 약점 카드 */
+.weak{display:flex; align-items:center; gap:11px; margin-top:12px; padding:13px 14px; border-radius:18px;
+  border:1.5px solid var(--primary); background:var(--surface); box-shadow:var(--shadow);}
+.weak .ico{font-size:1.25rem; line-height:1; flex:none;}
+.weak .bd{min-width:0; flex:1;}
+.weak .t{font-weight:800; font-size:.94rem; letter-spacing:-.02em;}
+.weak .d{font-size:.75rem; color:var(--muted); font-weight:600; margin-top:1px; word-break:keep-all;}
+.weak .btn{width:auto; flex:none; min-height:44px;}
+
+/* 퀴즈 내용 세로 정렬 */
+main#view.qz{display:flex; flex-direction:column;}
+.qwrap{margin:auto 0; width:100%;}
+.timeline{margin-top:10px; font-size:.78rem; color:var(--muted);}
 </style>
 </head>
 <body>
@@ -466,8 +528,8 @@ var KEY = 'sebeop_ox_v1';
 /* ─────────── 상태 ─────────── */
 function blank(){
   return {v:1, ans:{}, wrong:{}, days:{}, daily:{}, streak:{cur:0,best:0,last:null},
-          cfg:{daily:10, count:10, scope:'전체', roundN:0}, flags:{installDismissed:false, theme:'system'},
-          book:{}, memo:{}, dnk:{}, resume:null, exdraft:null};
+          cfg:{daily:10, count:10, scope:'전체', roundN:0}, flags:{installDismissed:false, theme:'system', blind:false},
+          book:{}, memo:{}, dnk:{}, resume:null, exdraft:null, rc:{}, spd:{n:0, ms:0}};
 }
 var S = load();
 
@@ -486,6 +548,8 @@ function load(){
     b.dnk = (o.dnk && typeof o.dnk === 'object') ? o.dnk : {};
     b.resume = (o.resume && o.resume.ids && o.resume.ids.length) ? o.resume : null;
     b.exdraft = (o.exdraft && o.exdraft.items && o.exdraft.items.length) ? o.exdraft : null;
+    b.rc = (o.rc && typeof o.rc === 'object') ? o.rc : {};
+    b.spd = (o.spd && typeof o.spd === 'object' && o.spd.n) ? o.spd : {n:0, ms:0};
     /* 문항 수는 10문제 고정 — 예전 20·30 설정은 10으로 당기고, 회차는 '전체(0)' 또는 '10'만 둔다. */
     b.cfg.daily = 10; b.cfg.count = 10;
     b.cfg.roundN = (parseInt(b.cfg.roundN, 10) || 0) === 0 ? 0 : 10;
@@ -529,6 +593,32 @@ function hhmm(ts){
   return (m < 10 ? '0' + m : m) + '.' + (dd < 10 ? '0' + dd : dd);
 }
 function pct(a, b){ return b ? Math.round(a / b * 100) : 0; }
+function eachNode(nl, fn){ for(var i = 0; i < nl.length; i++) fn(nl[i], i); }
+
+/* ─────────── 오답 원인 태그 ───────────
+   세법·행소법 오답은 대개 네 갈래로 정리된다. 틀린 직후 한 번 고르게 해서
+   “내가 어느 쪽에서 반복해서 걸리는지”를 통계에 쌓는다. */
+var CAUSE = {num:'숫자·기한', who:'주체·권한', exc:'예외·요건', con:'개념혼동'};
+var CAUSE_ORDER = ['num', 'who', 'exc', 'con'];
+function suggestCause(q){
+  var t = String((q && q.trap) || '') + ' ' + String((q && q.why) || '');
+  if(/기한|이내|원\b|%|％|개월|회 이상|한도|세율|산정|개산|비율/.test(t)) return 'num';
+  if(/예외|다만|단서|한정|요건을|요건이|갖춘|충족/.test(t)) return 'exc';
+  if(/주체|권한|누가|처분청|관할|장관|귀속|납세의무자|당사자/.test(t)) return 'who';
+  return 'con';
+}
+
+/* ─────────── 숫자·기한 가리기 ───────────
+   지문 안의 금액·기한·횟수를 가려 두고, 기억나는지 먼저 판단하게 한다.
+   조문 번호(§81조의4, 제16조)는 근거 찾기용이라 가리지 않는다. */
+var BL_RE = /([§제]\s?)?(\d[\d,]*(?:\.\d+)?)\s?(억|만|천)?\s?(원|%|％|일|개월|년|회|명|배|시간|점|개|조|항|호|분|차|기|월|주)?/g;
+function blindHTML(s){
+  return esc(s).replace(BL_RE, function(m, pre, num, big, unit){
+    if(pre) return m;
+    return '<b class="bl" data-bl="1">' + m + '</b>';
+  });
+}
+function blindOn(){ return !!(S.flags && S.flags.blind); }
 
 /* ─────────── 강조 · D-day · 검색 유틸 ─────────── */
 var EXAM_AT = {y:2027, m:4, d:24};
@@ -664,8 +754,38 @@ function topicStats(subject){
   for(var t2 in o){ o[t2].rate = pct(o[t2].ok, o[t2].n); o[t2].cover = pct(o[t2].seen, o[t2].total); }
   return o;
 }
-function wrongList(onlyOpen){
-  var out = [];
+/* ─────────── 약점 분석 ───────────
+   ① 시도한 기록이 있는 단원 중 정답률이 낮은 곳을 먼저 본다(최소 3문항 이상).
+   ② 아직 손대지 않은 단원이면 커버리지가 낮은 큰 단원부터.
+   → 홈·통계에서 바로 10문항 집중 세트로 이어진다. */
+function topicRows(){
+  var subs = isAll() ? SUBJECTS : [scope()];
+  var rows = [];
+  subs.forEach(function(s){
+    var ts = topicStats(s);
+    (TOPICS[s] || []).forEach(function(t){
+      var x = ts[t];
+      rows.push({subject:s, topic:t, n:x.n, ok:x.ok, rate:x.rate, cover:x.cover, total:x.total});
+    });
+  });
+  return rows;
+}
+function weakness(limit){
+  var rows = topicRows();
+  var tried = rows.filter(function(r){ return r.n >= 3; });
+  tried.sort(function(a, b){ return (a.rate - b.rate) || (b.n - a.n) || (b.total - a.total); });
+  var rest = rows.filter(function(r){ return r.n < 3; });
+  rest.sort(function(a, b){ return (a.cover - b.cover) || (b.total - a.total); });
+  var out = tried.concat(rest);
+  return limit ? out.slice(0, limit) : out;
+}
+function weakLine(w){
+  if(!w) return '';
+  if(w.n >= 3) return shortName(w.subject) + ' · ' + w.topic + ' · ' + w.rate + '% 정답 (' + w.n + '문항)';
+  return shortName(w.subject) + ' · ' + w.topic + ' · 아직 ' + w.total + '지문 남음';
+}
+
+function wrongList(onlyOpen){  var out = [];
   for(var id in S.wrong){
     var q = byId.get(id); if(!q || !inScope(q)) continue;
     var w = S.wrong[id];
@@ -869,7 +989,7 @@ function buildDaily(dateStr, n){
 }
 function startSession(mode, opts){
   opts = opts || {};
-  var ids = [], dateStr = dkey();
+  var ids = [], dateStr = dkey(), note = '';
   if(mode === 'daily'){
     var pk = planKey(dateStr);
     var plan = S.daily[pk];
@@ -884,9 +1004,22 @@ function startSession(mode, opts){
     var rnd = mulberry32(hashStr('focus:' + opts.subject + ':' + opts.topic + ':' + dateStr + ':' + Object.keys(S.ans).length));
     var pool = BANK.filter(function(q){ return q.subject === opts.subject && q.topic === opts.topic; });
     ids = priorityOrder(pool, rnd).slice(0, n).map(function(q){ return q.id; });
+    /* 단원 지문이 10개보다 적으면 같은 과목 다른 단원에서 모자란 만큼 더 넣는다(10문항 고정 유지) */
+    if(ids.length < n){
+      var usedF = {}; ids.forEach(function(id){ usedF[id] = 1; });
+      var rndF = mulberry32(hashStr('focuspad:' + opts.subject + ':' + opts.topic + ':' + dateStr));
+      var extra = BANK.filter(function(q){ return q.subject === opts.subject && q.topic !== opts.topic && !usedF[q.id]; });
+      var fill = priorityOrder(extra, rndF).slice(0, n - ids.length);
+      fill.forEach(function(q){ ids.push(q.id); });
+      if(fill.length) note = '이 단원 지문이 ' + (ids.length - fill.length) + '개라 같은 과목 ' + fill.length + '문항을 더 넣었습니다';
+    }
   }else if(mode === 'wrong'){
     var n2 = opts.n || 10;
     ids = wrongList(true).slice(0, n2).map(function(x){ return x.id; });
+  }else if(mode === 'retry'){
+    var want = (opts.ids || []).filter(function(id){ return byId.has(id); });
+    if(want.length > 10){ note = '틀린 ' + want.length + '지문 중 10지문만 냅니다'; }
+    ids = want.slice(0, 10);
   }else if(mode === 'book'){
     var poolB = BANK.filter(function(q){ return inScope(q) && S.book[q.id]; });
     var rndB = mulberry32(hashStr('book:' + dateStr + ':' + Object.keys(S.ans).length));
@@ -910,7 +1043,8 @@ function startSession(mode, opts){
   session = {mode:mode, ids:ids, i:i, answered:answered, ok:okInit,
              subject:opts.subject || null, topic:opts.topic || null, date:dateStr,
              year:opts.year || null, round:opts.round || null,
-             startedAt:Date.now(), picked:null, noResume:!!opts.noResume};
+             startedAt:Date.now(), picked:null, noResume:!!opts.noResume,
+             times:{}, combo:0, best:0, qStart:Date.now(), qStartFor:null, note:note};
   snapshotSession(); save();
   navPush({name:'quiz'});
 }
@@ -973,6 +1107,16 @@ function answer(pick){
   session.answered[q.id] = pick;
   session.picked = pick;
   if(r.ok) session.ok++;
+  /* 문항 소요 시간 — 실제 시험은 시간 싸움이라 평균 페이스를 보여 준다 */
+  var spent = Date.now() - (session.qStart || Date.now());
+  if(spent > 500 && spent < 900000){
+    session.times[q.id] = spent;
+    S.spd = S.spd || {n:0, ms:0};
+    S.spd.n = (S.spd.n || 0) + 1; S.spd.ms = (S.spd.ms || 0) + spent;
+  }
+  /* 연속 정답 */
+  if(r.ok){ session.combo = (session.combo || 0) + 1; session.best = Math.max(session.best || 0, session.combo); }
+  else session.combo = 0;
   if(session.mode === 'daily'){
     var plan = S.daily[session.date] || (S.daily[session.date] = {ids:session.ids, done:{}, ok:0});
     plan.done[q.id] = pick; if(r.ok) plan.ok = (plan.ok || 0) + 1;
@@ -1030,6 +1174,7 @@ function render(){
   else if(name === 'exam') renderExam(v, b);
   else if(name === 'examresult') renderExamResult(v, b);
   else renderHome(v, b);
+  v.classList.toggle('qz', name === 'quiz' && !!session);
   var hb = document.getElementById('homebtn');
   if(hb) hb.style.display = (name === 'home') ? 'none' : 'inline-flex';
   applyTheme();
@@ -1092,6 +1237,12 @@ function renderHome(v, b){
   }
   var focusDesc = isAll() ? '4개 과목 · ' + SUBJECTS.reduce(function(a, s2){ return a + TOPICS[s2].length; }, 0) + '개 단원'
     : TOPICS[scope()].length + '개 단원';
+  var segs = '';
+  for(var gi = 0; gi < planN; gi++) segs += '<i class="' + (gi < planDone ? 'on' : '') + '"></i>';
+  var wk = weakness(1)[0];
+  var weakHTML = wk ? '<div class="weak"><span class="ico">🎯</span><div class="bd">' +
+      '<div class="t">오늘의 약점 집중</div><div class="d">' + esc(weakLine(wk)) + '</div></div>' +
+      '<button class="btn sm primary" type="button" data-act="start-weak" data-subject="' + esc(wk.subject) + '" data-topic="' + esc(wk.topic) + '">10문항 풀기</button></div>' : '';
   var nBook = 0;   /* 지금 고른 과목 안의 북마크만 센다(목록과 숫자가 어긋나지 않게) */
   for(var bid in S.book){ var bq = byId.get(bid); if(bq && inScope(bq)) nBook++; }
   var seen = 0;
@@ -1106,16 +1257,23 @@ function renderHome(v, b){
       '<div class="spread" style="align-items:flex-start">' +
         '<div style="min-width:0">' +
           '<div class="dday">🗓️ 2027 세무사 1차 <b>' + ddayText() + '</b> <span class="tiny" style="opacity:.72">예상 일정</span></div>' +
-          '<h2>오늘 ' + today.n + '문항 · 정답률 ' + pct(today.ok, today.n) + '%</h2>' +
+          '<h2>' + (today.n ? '오늘 ' + today.n + '문항 · 정답률 ' + pct(today.ok, today.n) + '%' : '오늘은 아직 시작 전') + '</h2>' +
           '<div class="tiny" style="margin-top:3px;opacity:.86">' + esc(scopeLabel()) + ' 커버리지 ' + (cov < 1 && seen ? '1% 미만' : cov + '%') + ' · 지문 ' + seen + ' / ' + scopedSize() + '</div>' +
         '</div>' +
         '<div class="streak"><b>' + (S.streak.cur || 0) + '일</b><div class="tiny">연속 학습</div></div>' +
       '</div>' +
       '<div class="bar" style="margin-top:14px"><i style="width:' + cov + '%"></i></div>' +
-      '<div class="spread tiny" style="margin-top:9px;opacity:.9"><span>' + esc(scopeLabel()) + ' 데일리 ' + planDone + ' / ' + planN + '</span>' +
-        '<span>' + (planDone >= planN && planN ? '완료 ✓' : '남은 ' + (planN - planDone) + '문항') + '</span></div>' +
-      '<div class="tiny" style="margin-top:10px;opacity:.8">매일 10문항 고정</div>' +
+      '<div class="goal">' +
+        '<div class="top"><span>오늘 목표 · ' + planN + '문항</span>' +
+          (planDone >= planN && planN ? '<span class="badge-done">목표 달성 ✓</span>'
+            : '<span><b class="n">' + planDone + '</b><em> / ' + planN + '</em></span>') + '</div>' +
+        '<div class="segs">' + segs + '</div>' +
+        '<div class="foot"><span>' + (planDone >= planN && planN ? '한 번 더 돌려도 좋아요' : '남은 ' + (planN - planDone) + '문항') + '</span>' +
+          '<span>매일 10문항 고정</span></div>' +
+      '</div>' +
     '</div>' +
+
+    weakHTML +
 
     '<div class="quick">' +
       '<button class="qbtn" type="button" data-act="rounds"><span class="ic">🗂️</span><span class="t">기출 회차별</span><span class="d">' + esc(roundSummary()) + '</span></button>' +
@@ -1390,9 +1548,36 @@ function renderExamResult(v, b){
         '<span class="chip">' + esc(q.topic) + '</span></div>' +
         '<div class="acts"><button class="btn sm" type="button" data-act="review-one" data-id="' + esc(q.id) + '">해설 보기</button></div></div>';
     }).join('') + '</div>';
-  b.innerHTML = '<div class="row">' +
-    '<button class="btn" type="button" data-act="home">홈</button>' +
-    '<button class="btn primary" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button></div>';
+  var eids = wrongIds.map(function(it){ return it.id; });
+  b.innerHTML = '<div class="doneacts">' +
+    (eids.length ? '<button class="btn primary" type="button" data-act="retry" data-ids="' + esc(eids.join(',')) + '">✕ 틀린 ' + eids.length + '문항만 다시</button>' : '') +
+    '<div class="row">' +
+      '<button class="btn" type="button" data-act="home">홈</button>' +
+      '<button class="btn' + (eids.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button>' +
+    '</div></div>';
+}
+
+/* 오답 원인 태그 — 틀린 직후 한 번 고르면 약점 통계에 쌓인다 */
+function rcauseHTML(q){
+  var cur = S.rc && S.rc[q.id] ? S.rc[q.id].c : null;
+  if(cur && !CAUSE[cur]) cur = null;
+  var sug = suggestCause(q);
+  return '<div class="rcause" data-rcid="' + esc(q.id) + '">' +
+    '<div class="lb">' + (cur ? '오답 원인 · ' + CAUSE[cur] + ' <span class="muted">(다시 고를 수 있어요)</span>'
+                             : '왜 틀렸나요? 하나만 골라 두면 내 약점 통계가 됩니다') + '</div>' +
+    '<div class="opts">' + CAUSE_ORDER.map(function(c){
+      return '<button type="button" data-act="rcause" data-c="' + c + '" class="' +
+        (cur === c ? 'on' : '') + (cur ? '' : (c === sug ? ' sug' : '')) + '">' + CAUSE[c] + '</button>';
+    }).join('') + '</div></div>';
+}
+function causeCounts(){
+  var o = {num:0, who:0, exc:0, con:0};
+  var src = S.rc || {};
+  for(var id in src){
+    var c = src[id] && src[id].c;
+    if(c && o[c] !== undefined && byId.has(id) && inScope(byId.get(id))) o[c]++;
+  }
+  return o;
 }
 
 function renderQuiz(v, b){
@@ -1408,6 +1593,20 @@ function renderQuiz(v, b){
   var correct = (picked === q.answer);
   var pos = s.i + 1;
   var expHTML = '';
+  if(!isAnswered && s.qStartFor !== q.id){ s.qStartFor = q.id; s.qStart = Date.now(); }
+  /* 진행 도트 — 문항이 12개 이하일 때만(그 이상은 막대로) */
+  var progHTML = '';
+  if(s.ids.length <= 12){
+    progHTML = '<div class="dots">' + s.ids.map(function(id, k){
+      var a = s.answered[id];
+      var cls = (a === undefined) ? (k === s.i ? 'cur' : '') : (a === (byId.get(id) || {}).answer ? 'ok' : 'ng');
+      return '<i class="' + cls + '"></i>';
+    }).join('') + '</div>';
+  }else{
+    progHTML = '<div class="bar"><i style="width:' + pct(pos - 1, s.ids.length) + '%"></i></div>';
+  }
+  var comboHTML = (s.combo >= 2 && !s.review)
+    ? '<span class="combo' + (s.combo >= 4 ? ' hot' : '') + '">🔥 ' + s.combo + '연속</span>' : '';
 
   if(isAnswered){
     var secs = [];
@@ -1437,6 +1636,7 @@ function renderQuiz(v, b){
   }
 
   v.innerHTML =
+    '<div class="qwrap">' +
     '<div class="qhead">' +
       '<span class="chip subj">' + esc(shortName(q.subject)) + '</span>' +
       '<span class="chip tax">' + esc(q.topic) + '</span>' +
@@ -1445,10 +1645,13 @@ function renderQuiz(v, b){
       (S.wrong[q.id] ? '<span class="chip ng">누적 ' + S.wrong[q.id].w + '회 틀림</span>' : '') +
       '<button class="chip star ' + (S.book[q.id] ? 'on' : '') + '" type="button" data-act="bookq" data-id="' + esc(q.id) + '">' +
         (S.book[q.id] ? '★ 저장됨' : '☆ 저장') + '</button>' +
+      '<button class="chip blindc ' + (blindOn() ? 'on' : '') + '" type="button" data-act="blind" aria-pressed="' + (blindOn() ? 'true' : 'false') + '" aria-label="숫자·기한 가리기">🔢 숫자 가리기' + (blindOn() ? ' ✓' : '') + '</button>' +
     '</div>' +
-    '<div class="bar"><i style="width:' + pct(pos - 1, s.ids.length) + '%"></i></div>' +
-    '<div class="qcount"><span>' + pos + ' / ' + s.ids.length + '</span><span>정답 ' + s.ok + ' · 오답 ' + (Object.keys(s.answered).length - s.ok) + '</span></div>' +
-    '<div class="stmt"><span class="qmark">Q.</span>' + esc(q.stmt) + '</div>' +
+    progHTML +
+    '<div class="qcount"><span>' + pos + ' / ' + s.ids.length + '</span>' +
+      '<span class="rt">' + comboHTML + '<span>정답 ' + s.ok + ' · 오답 ' + (Object.keys(s.answered).length - s.ok) + '</span></span></div>' +
+    '<div class="stmt"><span class="qmark">Q.</span>' + (blindOn() ? blindHTML(q.stmt) : esc(q.stmt)) + '</div>' +
+    (blindOn() && !isAnswered ? '<div class="blhint">가린 값을 먼저 떠올리고 탭해서 확인하세요.</div>' : '') +
     (q.q && q.q !== q.stmt ? '<details class="origin"><summary>📄 이 선지의 문제 원문 보기</summary><div class="body">' + esc(q.q) + '</div></details>' : '') +
     (isAnswered ?
       '<div class="verdict ' + (correct ? 'good' : 'bad') + '">' +
@@ -1456,14 +1659,17 @@ function renderQuiz(v, b){
         '<span>' + (s.review ? '해설 · 정답은 <b>' + q.answer + '</b>'
           : picked === '?' ? '모르는 지문으로 표시했습니다 · 정답은 <b>' + q.answer + '</b>'
           : (correct ? '정답입니다' : '오답입니다') + ' · 이 지문은 <b>' + q.answer + '</b>' + (correct ? '' : ' (내 답 ' + picked + ')')) +
-        '</span></div>' + expHTML +
+        '</span></div>' + ((correct || s.review) ? '' : rcauseHTML(q)) + expHTML +
       '<details class="memo"' + (S.memo[q.id] ? ' open' : '') + '><summary>📝 내 메모' + (S.memo[q.id] ? ' · 적어 둠' : '') + '</summary>' +
         '<div class="in"><textarea data-memoid="' + esc(q.id) + '" placeholder="헷갈린 포인트, 헷갈린 이유, 다음에 볼 것…">' + esc(S.memo[q.id] || '') + '</textarea></div></details>' +
       '<div class="row" style="margin-top:10px;gap:8px">' +
         '<button class="btn sm ghost" type="button" data-act="ai" data-id="' + esc(q.id) + '">🤖 AI에게 묻기</button>' +
       '</div>'
       :
-      '<div class="banner" style="margin-top:12px"><b>O</b> = 이 지문이 맞다 &nbsp;·&nbsp; <b>X</b> = 이 지문이 틀리다</div>');
+      '<div class="banner" style="margin-top:12px">' +
+        (blindOn() ? '가린 <b>?</b>를 탭하면 숫자·기한이 보입니다. 먼저 기억으로 판단하세요.'
+                   : '<b>O</b> = 이 지문이 맞다 &nbsp;·&nbsp; <b>X</b> = 이 지문이 틀리다') + '</div>') +
+    '</div>';
 
   if(!isAnswered){
     b.innerHTML = '<div class="picks">' +
@@ -1473,7 +1679,7 @@ function renderQuiz(v, b){
       '<button class="btn ghost" type="button" data-act="pick" data-v="?" style="min-height:48px;margin-top:8px;font-size:.9rem">🤷 모르겠음 — 오답노트에 담기</button>';
   }else{
     b.innerHTML = s.review
-      ? '<button class="btn primary" type="button" data-act="back-exam" style="min-height:64px">시험 결과로 돌아가기</button>'
+      ? '<button class="btn primary" type="button" data-act="back-exam" style="min-height:64px">결과로 돌아가기</button>'
       : '<button class="btn primary" type="button" data-act="next" style="min-height:64px">' +
         (pos >= s.ids.length ? '결과 보기 →' : '다음 문항 →') + '</button>';
   }
@@ -1485,6 +1691,7 @@ function sessionLabel(s){
   if(s.mode === 'daily') return scopeLabel() + ' 데일리';
   if(s.mode === 'focus') return shortName(s.subject || '') + ' · ' + (s.topic || '') + ' 집중';
   if(s.mode === 'round') return shortName(s.subject || '') + ' · ' + (s.year || '') + ' ' + (s.round || '') + ' 기출';
+  if(s.mode === 'retry') return '틀린 지문 다시';
   if(s.mode === 'book') return '북마크';
   return '오답 집중';
 }
@@ -1496,17 +1703,28 @@ function renderDone(v, b){
   var open = wrongList(true);
   var msg = s.mode === 'wrong'
       ? (rate >= 80 ? '오답 지문을 거의 다 해결했습니다.' : '아직 헷갈리는 지문이 남아 있습니다. 해설을 한 번 더 읽어 보세요.')
+      : s.mode === 'retry'
+      ? (rate >= 90 ? '틀린 지문을 거의 다 잡혔습니다.' : '아직 남은 것이 있습니다. 아래에서 한 번 더 돌려 보세요.')
       : s.mode === 'round'
       ? (rate >= 80 ? '이 회차는 거의 잡혔습니다. 다른 회차로 넘어가 보세요.'
         : '이 회차에서 틀린 지문은 오답노트에 쌓였습니다. 회차별 풀기로 한 번 더 돌려 보세요.')
       : (rate >= 90 ? '아주 좋습니다. 이 단원은 거의 잡혔어요.'
         : rate >= 70 ? '기본은 잡혔습니다. 틀린 지문만 다시 보면 됩니다.'
         : '오답이 많습니다. 해설의 「이 선지가 그런 이유」를 다시 읽어 보세요.');
+  var wIds = Object.keys(s.answered).filter(function(id){ return s.answered[id] !== (byId.get(id) || {}).answer; });
+  var ts = 0, tn = 0;
+  for(var tk in (s.times || {})){ ts += s.times[tk]; tn++; }
+  var pace = tn ? Math.round(ts / tn / 1000) : 0;
+  var metaBits = [];
+  if(pace) metaBits.push('평균 ' + pace + '초/문항');
+  if(s.best >= 3) metaBits.push('🔥 최고 ' + s.best + '연속 정답');
   v.innerHTML =
     '<div class="card center" style="margin-top:16px">' +
       '<div class="muted tiny">' + esc(sessionLabel(s)) + ' 완료</div>' +
       '<div class="score" style="--p:' + rate + '"><i>' + rate + '%</i></div>' +
       '<div class="muted">' + done + '문항 중 ' + s.ok + '문항 정답 · 오답 ' + (done - s.ok) + '</div>' +
+      (metaBits.length ? '<div class="tiny muted" style="margin-top:6px">' + metaBits.join(' · ') + '</div>' : '') +
+      (s.note ? '<div class="tiny muted" style="margin-top:6px">' + esc(s.note) + '</div>' : '') +
       '<p class="muted" style="margin-top:10px">' + msg + '</p>' +
       (rate >= 90 && done ? '<div class="tiny" style="margin-top:6px;font-weight:800;color:var(--primary)">🎉 좋아요, 이 회독이 쌓이고 있습니다</div>' : '') +
     '</div>' +
@@ -1526,9 +1744,12 @@ function renderDone(v, b){
         }).join('') + '</div>' + (ids.length > 8 ? '<p class="muted tiny" style="margin-top:8px">외 ' + (ids.length - 8) + '문항은 오답노트에 있습니다.</p>' : '');
       })() +
     '</div>';
-  b.innerHTML = '<div class="row">' +
-    '<button class="btn" type="button" data-act="home">홈</button>' +
-    '<button class="btn primary" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button></div>';
+  b.innerHTML = '<div class="doneacts">' +
+    (wIds.length ? '<button class="btn primary" type="button" data-act="retry" data-ids="' + esc(wIds.join(',')) + '">✕ 틀린 ' + wIds.length + '지문만 다시</button>' : '') +
+    '<div class="row">' +
+      '<button class="btn" type="button" data-act="home">홈</button>' +
+      '<button class="btn' + (wIds.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button>' +
+    '</div></div>';
 }
 
 function renderWrong(v, b){
@@ -1546,6 +1767,7 @@ function renderWrong(v, b){
       '<span class="chip">' + esc(q.src) + '</span>' +
       '<span class="chip ng">' + x.w.w + '회 틀림</span>' +
       '<span class="chip">최근 ' + hhmm(x.w.last) + '</span>' +
+      (S.rc[q.id] && CAUSE[S.rc[q.id].c] ? '<span class="chip">' + CAUSE[S.rc[q.id].c] + '</span>' : '') +
       (q.revised ? '<span class="chip rev">🔄 개정</span>' : '') + '</div>' +
       '<div class="acts">' +
         (x.w.res
@@ -1600,6 +1822,27 @@ function renderStats(v, b){
   }
 
   var rEnts = roundEntries(scope());
+  var cc = causeCounts(), ccTot = cc.num + cc.who + cc.exc + cc.con;
+  var rowsCause = '<div class="card" style="margin-top:12px"><h3>내 오답 원인</h3>' +
+    (ccTot
+      ? '<p class="muted tiny" style="margin-bottom:10px">틀린 지문에 남긴 태그 ' + ccTot + '개</p>' +
+        CAUSE_ORDER.map(function(c){
+          var w = Math.round(cc[c] / ccTot * 100);
+          return '<div class="causerow"><span class="cr" style="flex:0 0 80px">' + CAUSE[c] + '</span>' +
+            '<span class="bar2"><i style="width:' + w + '%"></i></span>' +
+            '<span class="tiny muted" style="flex:0 0 46px;text-align:right">' + cc[c] + '</span></div>';
+        }).join('')
+      : '<p class="muted tiny">틀린 지문의 해설 위에서 <b>숫자·기한 / 주체·권한 / 예외·요건 / 개념혼동</b> 중 하나를 고르면 여기에 쌓입니다.</p>') +
+    '</div>';
+  var wk5 = weakness(5);
+  var rowsWeak = '<div class="card" style="margin-top:12px"><h3>약점 TOP 5</h3>' +
+    '<p class="muted tiny" style="margin-bottom:10px">정답률이 낮은 단원부터. «풀기»는 10문항만 바로 냅니다.</p>' +
+    wk5.map(function(w){
+      return '<div class="spread" style="margin-bottom:10px;gap:8px">' +
+        '<div style="min-width:0"><div style="font-weight:800;font-size:.86rem;word-break:keep-all">' + esc(shortName(w.subject)) + ' · ' + esc(w.topic) + '</div>' +
+        '<div class="tiny muted">' + (w.n >= 3 ? w.rate + '% 정답 · ' + w.n + '문항' : '미학습 · ' + w.total + '지문') + '</div></div>' +
+        '<button class="btn sm go" type="button" data-act="start-weak" data-subject="' + esc(w.subject) + '" data-topic="' + esc(w.topic) + '">풀기</button></div>';
+    }).join('') + '</div>';
   var rowsRound = rEnts.length ? '<div class="card" style="margin-top:12px"><h3>기출 회차별 진도</h3>' +
     rEnts.map(function(e){
       var x = roundStat(e);
@@ -1627,7 +1870,11 @@ function renderStats(v, b){
       }).join('') + '</div></div>' +
     '<div class="card" style="margin-top:12px"><h3>과목별 정답률</h3>' + rowsSubj +
       '<div class="sep"></div><div class="spread tiny muted"><span>오답노트 다시 볼 문항</span><b>' + open.length + '개</b></div>' +
-      '<div class="spread tiny muted" style="margin-top:4px"><span>해결된 문항</span><b>' + (all.length - open.length) + '개</b></div></div>' +
+      '<div class="spread tiny muted" style="margin-top:4px"><span>해결된 문항</span><b>' + (all.length - open.length) + '개</b></div>' +
+      '<div class="spread tiny muted" style="margin-top:4px"><span>문항 평균 소요</span><b>' +
+        ((S.spd && S.spd.n) ? Math.round(S.spd.ms / S.spd.n / 1000) + '초' : '–') + '</b></div></div>' +
+    rowsWeak +
+    rowsCause +
     rowsTopic +
     rowsRound +
     '<div class="card" style="margin-top:12px"><h3>백업 · 복원</h3>' +
@@ -1678,6 +1925,8 @@ function importJSON(file){
       b.ans = d.ans || {}; b.wrong = d.wrong || {}; b.days = d.days || {}; b.daily = d.daily || {};
       b.streak = d.streak || b.streak; b.cfg = Object.assign(b.cfg, d.cfg || {});
       b.book = d.book || {}; b.memo = d.memo || {}; b.dnk = d.dnk || {};
+      b.rc = (d.rc && typeof d.rc === 'object') ? d.rc : {};
+      b.spd = (d.spd && typeof d.spd === 'object' && d.spd.n) ? d.spd : {n:0, ms:0};
       /* 풀던 세션·답안지도 백업에 담겨 있으므로 함께 되살린다 */
       b.resume = (d.resume && d.resume.ids && d.resume.ids.length) ? d.resume : null;
       b.exdraft = (d.exdraft && d.exdraft.items && d.exdraft.items.length) ? d.exdraft : null;
@@ -1692,6 +1941,9 @@ function importJSON(file){
 
 /* ─────────── 이벤트 ─────────── */
 document.addEventListener('click', function(ev){
+  /* 가린 숫자·기한 — 탭하면 보인다 */
+  var bEl = ev.target.closest && ev.target.closest('.bl');
+  if(bEl){ bEl.classList.toggle('on'); return; }
   /* 사용자가 펼친 상세(문제 원문·내 메모)는 뒤로가기 1회로 먼저 닫는다 */
   var sm = ev.target.closest && ev.target.closest('details > summary');
   if(sm){
@@ -1749,6 +2001,33 @@ document.addEventListener('click', function(ev){
   else if(act === 'book'){ navPush({name:'book'}); }
   else if(act === 'search'){ navPush({name:'search', q:''}); }
   else if(act === 'bookq'){ toggleBook(el.getAttribute('data-id')); }
+  else if(act === 'blind'){
+    var sy = window.scrollY;
+    S.flags.blind = !S.flags.blind; save(); render();
+    try{ window.scrollTo(0, sy); }catch(e){}
+    toast(S.flags.blind ? '숫자·기한을 가렸습니다 — ?를 탭하면 보입니다' : '숫자·기한을 그대로 보여 줍니다');
+  }
+  else if(act === 'rcause'){
+    var rbox = el.closest('.rcause');
+    var rqid = rbox ? rbox.getAttribute('data-rcid') : null;
+    var rc = el.getAttribute('data-c');
+    if(rqid && CAUSE[rc]){
+      S.rc = S.rc || {};
+      var prevRC = S.rc[rqid] && S.rc[rqid].c;
+      if(prevRC === rc){ delete S.rc[rqid]; }
+      else { S.rc[rqid] = {c:rc, at:Date.now()}; }
+      save();
+      var curRC = S.rc[rqid] ? S.rc[rqid].c : null;
+      eachNode(rbox.querySelectorAll('button'), function(btn2){
+        var bc = btn2.getAttribute('data-c');
+        btn2.className = (curRC === bc ? 'on' : '') + (curRC ? '' : (bc === suggestCause(byId.get(rqid)) ? ' sug' : ''));
+      });
+      var rlb = rbox.querySelector('.lb');
+      if(rlb) rlb.innerHTML = curRC ? ('오답 원인 · ' + CAUSE[curRC] + ' <span class="muted">(다시 고를 수 있어요)</span>')
+                                    : '왜 틀렸나요? 하나만 골라 두면 내 약점 통계가 됩니다';
+      toast(curRC ? '오답 원인: ' + CAUSE[curRC] : '오답 원인 태그를 지웠습니다');
+    }
+  }
   else if(act === 'ai'){
     var aq = byId.get(el.getAttribute('data-id'));
     if(aq) copyText(examPrompt(aq), '질문을 복사했습니다 — ChatGPT·Gemini에 붙여넣으세요');
@@ -1800,6 +2079,12 @@ document.addEventListener('click', function(ev){
     save(); render();
   }else if(act === 'start-focus'){
     startSession('focus', {subject: el.getAttribute('data-subject'), topic: el.getAttribute('data-topic'), n: S.cfg.count});
+  }else if(act === 'start-weak'){
+    startSession('focus', {subject: el.getAttribute('data-subject'), topic: el.getAttribute('data-topic'), n: 10});
+  }else if(act === 'retry'){
+    var idsR = String(el.getAttribute('data-ids') || '').split(',').filter(function(x){ return x; });
+    if(!idsR.length){ toast('다시 풀 지문이 없습니다'); return; }
+    startSession('retry', {ids: idsR});
   }else if(act === 'start-wrong'){
     var open = wrongList(true);
     if(!open.length){ toast('다시 볼 문항이 없습니다'); return; }
@@ -1863,11 +2148,16 @@ if(window.matchMedia){
   if(mq.addEventListener) mq.addEventListener('change', function(){ if((S.flags.theme || 'system') === 'system') applyTheme(); });
 }
 
-/* 서비스 워커 */
+/* 서비스 워커 — ?qa=1 점검 모드에서는 등록하지 않고 기존 등록·캐시를 정리한다 */
 if('serviceWorker' in navigator && location.protocol === 'https:'){
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js').catch(function(e){ window.__errs.push('sw: ' + e.message); });
-  });
+  if(/[?&]qa=1/.test(location.search)){
+    try{ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); }catch(e){}
+    try{ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); }catch(e){}
+  }else{
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(e){ window.__errs.push('sw: ' + e.message); });
+    });
+  }
 }
 
 /* 시작 */
@@ -1903,7 +2193,11 @@ window.__sebeop = {
   examResult: function(){ return examResult; }, search: searchHits, toggleBook: toggleBook,
   examPrompt: examPrompt, hl: hl,
   resume: function(){ return S.resume; }, hstack: function(){ return HSTACK; },
-  resumeQuiz: resumeQuiz, leaveQuiz: leaveQuiz, HOME: function(){ leaveQuiz(); navHome(); }
+  resumeQuiz: resumeQuiz, leaveQuiz: leaveQuiz, HOME: function(){ leaveQuiz(); navHome(); },
+  weakness: weakness, weakLine: weakLine, startRetry: function(ids){ startSession('retry', {ids:ids}); },
+  suggestCause: suggestCause, causeCounts: causeCounts, blindHTML: blindHTML, CAUSE: CAUSE,
+  setBlind: function(v){ S.flags.blind = !!v; save(); render(); },
+  rc: function(){ return S.rc; }, spd: function(){ return S.spd; }
 };
 })();
 </script>
