@@ -241,15 +241,16 @@ async function suite(){
   t('다시 풀기 목록으로 되돌림', body().indexOf('해결됨 1') >= 0 || qa('.li').length === 1, body().slice(0, 160));
   qa('.tabs button')[0].click(); await wait(60);
   eq('다시 볼 1건', qa('.li').length, 1);
-  t('다시 볼에 원인 태그', body().indexOf('예외·요건') >= 0);
+  t('다시 볼 행에 칩 렌더', qa('.li .chip').length >= 2, 'chips=' + qa('.li .chip').length);
   var openN = api().wrongList(true).length;
   eq('오답노트 미해결 수', openN, 1);
   clickSel('#bar button[data-act="start-wrong"]'); await wait(70);
   eq('오답 집중 상한 10', api().session().ids.length, Math.min(10, openN));
-  clickSel('#bar button[data-act="home"]'); await wait(60);
+  clickSel('#homebtn'); await wait(60);
 
   clickSel('button[data-act="search"]'); await wait(60);
   var inp = q('#sq');
+  if(!inp) throw new Error('검색 입력창 없음(화면=' + api().view().name + ')');
   inp.value = '가산세';
   inp.dispatchEvent(new W().Event('input', {bubbles:true}));
   await wait(90);
@@ -261,14 +262,14 @@ async function suite(){
   t('검색한 지문 표시', body().indexOf(firstHit) >= 0);
   clickSel('button[data-act="bookq"]'); await wait(60);
   eq('북마크 저장', api().bookmarks().length, 1);
-  clickSel('#bar button[data-act="home"]'); await wait(60);
+  clickSel('#homebtn'); await wait(60);
   clickSel('button[data-act="book"]'); await wait(50);
   eq('북마크 목록 1건', qa('.li').length, 1);
   t('북마크 풀기 버튼', !!q('#bar button[data-act="start-book"]'));
   clickSel('#bar button[data-act="start-book"]'); await wait(70);
   eq('북마크 세트 10문항', api().session().ids.length, 10);
   t('북마크 지문 포함', api().session().ids.indexOf(api().bookmarks()[0]) >= 0);
-  clickSel('#bar button[data-act="home"]'); await wait(60);
+  clickSel('#homebtn'); await wait(60);
 
   log('sec', 'E. 기출 회차 → 답안지 일괄 채점');
   clickSel('button[data-act="rounds"]'); await wait(60);
@@ -300,7 +301,7 @@ async function suite(){
   t('틀린 수 일치', eN === (3 - api().examResult().ok), 'n=' + eN + ' ok=' + api().examResult().ok);
   clickSel('#bar button[data-act="retry"]'); await wait(80);
   eq('답안지→틀린 세트', api().session().ids.length, eN);
-  clickSel('#bar button[data-act="home"]'); await wait(60);
+  clickSel('#homebtn'); await wait(60);
 
   log('sec', 'F. 단원 집중 · 약점 집중');
   clickSel('button[data-act="topics"]'); await wait(60);
@@ -337,7 +338,7 @@ async function suite(){
   eq('약점 집중 10문항', ws.ids.length, 10);
   eq('약점 과목 일치', ws.subject, weak.subject);
   eq('약점 단원 일치', ws.topic, weak.topic);
-  clickSel('#bar button[data-act="home"]'); await wait(60);
+  clickSel('#homebtn'); await wait(60);
 
   log('sec', 'G. 숫자·기한 가리기');
   var numQ = api().bank.filter(function(x){ return /\d/.test(x.stmt) && /원|%|일|년|회|개월|시간/.test(x.stmt) && x.stmt.length < 110; })[0];
