@@ -399,22 +399,30 @@ html[data-theme="dark"] .combo{color:var(--accent);}
 .bl::after{content:'?'; position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); font-weight:900; font-size:.8em;}
 /* 핵심어는 길이가 제각각이라 폭을 고정한다 — 한 칸("하여야 한다")이 줄을 밀어내지 않게 */
 .bl.key{display:inline-block; min-width:2.4em; padding:0 6px; border-radius:6px;}
+/* 주체·권한은 색으로 구분한다 — 여러 항목을 같이 켜도 무엇을 가린 칸인지 보이게 */
+.bl.who{display:inline-block; min-width:2.2em; padding:0 5px; border-radius:6px;
+  box-shadow:inset 0 -2px 0 color-mix(in srgb, var(--ct-who) 70%, transparent);}
 .bl.on{background:var(--hl-chip); color:inherit;}
 .bl.on::after{content:none;}
 .blhint{margin-top:8px; font-size:.76rem; color:var(--muted);}
 
 /* 빈칸 훈련 모드 고르개 — 칩 줄 아래 한 줄 */
 .blindbar{
-  display:flex; align-items:center; gap:6px; margin:-2px 0 10px; padding:5px 5px 5px 7px;
+  margin:-2px 0 10px; padding:5px 5px 6px 7px;
   border:1px solid var(--line); border-radius:12px; background:var(--surface);
 }
+.blindbar .brow{display:flex; align-items:center; gap:6px;}
+.blindbar .bcov{
+  padding:6px 2px 0; font-size:.66rem; line-height:1.5; color:var(--muted);
+  word-break:keep-all; font-variant-numeric:tabular-nums;
+}
 .blindbar .bsel{
-  flex:0 0 auto; border:1px solid var(--line); background:var(--surface2); color:var(--muted);
-  font-family:inherit; font-weight:800; font-size:.74rem; padding:6px 10px; border-radius:9px; cursor:pointer; white-space:nowrap;
+  flex:1 1 0; min-width:0; border:1px solid var(--line); background:var(--surface2); color:var(--muted);
+  font-family:inherit; font-weight:800; font-size:.73rem; padding:6px 4px; border-radius:9px; cursor:pointer; white-space:nowrap;
 }
 .blindbar .bsel.on{background:var(--warn-bg); color:var(--warn); border-color:var(--warn);}
 .blindbar .bx{
-  flex:0 0 auto; margin-left:auto; border:0; background:transparent; color:var(--muted);
+  flex:0 0 auto; border:0; background:transparent; color:var(--muted);
   font-family:inherit; font-size:.92rem; line-height:1; padding:6px 6px; cursor:pointer;
 }
 
@@ -429,7 +437,7 @@ html[data-theme="dark"]{--ct-num:#fbbf24; --ct-who:#a5b4fc; --ct-exc:#5eead4; --
 .cmatrix .cells{display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:6px;}
 .cmatrix .c{
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  min-height:40px; padding:3px 2px; border-radius:9px; border:1px solid var(--line); background:var(--surface2);
+  min-height:44px; padding:4px 2px; border-radius:9px; border:1px solid var(--line); background:var(--surface2);
   color:var(--muted); font-family:inherit; font-size:.62rem; font-weight:800; letter-spacing:-.01em;
 }
 .cmatrix .c .v{font-size:.9rem; font-weight:900; line-height:1.1; color:var(--muted);}
@@ -449,6 +457,23 @@ html[data-theme="dark"]{--ct-num:#fbbf24; --ct-who:#a5b4fc; --ct-exc:#5eead4; --
   font-family:inherit; font-weight:800; font-size:.75rem; padding:9px 4px; border-radius:10px; cursor:pointer; white-space:nowrap;
 }
 .pacesel button.on{background:var(--primary); color:var(--primary-ink); border-color:transparent;}
+/* 답안지 보기 — 40문항을 훑을 때 미응답만 모아 본다 */
+.xfilter{display:flex; gap:5px; margin:0 0 10px;}
+.xfilter button{
+  flex:1 1 0; min-width:0; border:1px solid var(--line); background:var(--surface); color:var(--muted);
+  font-family:inherit; font-weight:800; font-size:.75rem; padding:8px 4px; border-radius:10px; cursor:pointer;
+}
+.xfilter button.on{background:var(--surface2); color:var(--text); border-color:var(--text);}
+.xfilter button:disabled{opacity:.45; cursor:default;}
+.xms{font-size:.66rem; font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums; align-self:center; flex:none;}
+.xrow.hide{display:none;}
+/* 결과 — 문항에 머문 시간 */
+.slowrow{display:flex; align-items:center; gap:7px; padding:7px 0; border-top:1px dashed var(--line); font-size:.8rem;}
+.slowrow:first-of-type{border-top:0;}
+.slowrow .no{font-weight:900; color:var(--muted); min-width:18px; font-variant-numeric:tabular-nums;}
+.slowrow .t{font-weight:900; font-variant-numeric:tabular-nums; min-width:44px;}
+.slowrow .mk.ok{color:var(--ok);} .slowrow .mk.ng{color:var(--ng);}
+.slowrow .q{flex:1; min-width:0; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .pacebar{
   display:flex; flex-wrap:wrap; align-items:center; gap:3px 10px; margin:0 0 10px; padding:9px 12px;
   border-radius:12px; border:1px solid var(--line); background:var(--surface);
@@ -458,6 +483,10 @@ html[data-theme="dark"]{--ct-num:#fbbf24; --ct-who:#a5b4fc; --ct-exc:#5eead4; --
 .pacebar .pr{font-variant-numeric:tabular-nums;}
 .pacebar.ok .pr{color:var(--ok);}
 .pacebar.over .pr{color:var(--ng);}
+.pacebar .pc{font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums;}
+.pacebar .pc.hot{color:var(--ng); font-weight:900;}
+/* 현재 문항이 목표 시간을 넘겼을 때 — 색 변화에 더해 왼쪽 띠로 눈에 띄게 */
+.pacebar.lapover{box-shadow:inset 3px 0 0 var(--ng), var(--shadow);}
 .pacebar .pl{flex:1 1 100%; font-size:.7rem; font-weight:600; font-variant-numeric:tabular-nums;}
 /* 답안지는 길어서 스크롤하는 동안에도 시간이 보여야 한다 — 헤더 바로 아래에 붙인다 */
 .pacebar.sticky{position:sticky; top:calc(58px + env(safe-area-inset-top)); z-index:6; box-shadow:var(--shadow);}
@@ -535,7 +564,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=12"></script>
+<script src="./bank.js?v=13"></script>
 <script>
 (function(){
 'use strict';
@@ -603,7 +632,7 @@ var KEY = 'sebeop_ox_v1';
 /* ─────────── 상태 ─────────── */
 function blank(){
   return {v:1, ans:{}, wrong:{}, days:{}, daily:{}, streak:{cur:0,best:0,last:null},
-          cfg:{daily:10, count:10, scope:'전체', roundN:0, pace:0}, flags:{installDismissed:false, theme:'system', blind:false, blindw:false},
+          cfg:{daily:10, count:10, scope:'전체', roundN:0, pace:0}, flags:{installDismissed:false, theme:'system', blind:false, blindw:false, blindwho:false},
           book:{}, memo:{}, dnk:{}, resume:null, exdraft:null, rc:{}, spd:{n:0, ms:0}};
 }
 var S = load();
@@ -629,7 +658,7 @@ function load(){
     b.cfg.daily = 10; b.cfg.count = 10;
     b.cfg.roundN = (parseInt(b.cfg.roundN, 10) || 0) === 0 ? 0 : 10;
     b.cfg.pace = (parseInt(b.cfg.pace, 10) === 60 || parseInt(b.cfg.pace, 10) === 90) ? parseInt(b.cfg.pace, 10) : 0;
-    b.flags.blind = !!b.flags.blind; b.flags.blindw = !!b.flags.blindw;
+    b.flags.blind = !!b.flags.blind; b.flags.blindw = !!b.flags.blindw; b.flags.blindwho = !!b.flags.blindwho;
     /* 예전 20·30문항으로 만들어진 오늘 데일리 중 아직 아무것도 안 푼 판은 10문항으로 다시 짜게 한다 */
     Object.keys(b.daily).forEach(function(k){
       var p = b.daily[k];
@@ -685,14 +714,18 @@ function suggestCause(q){
   return 'con';
 }
 
-/* ─────────── 빈칸 훈련: 숫자·기한 · 예외·요건 핵심어 가리기 ───────────
+/* ─────────── 빈칸 훈련: 숫자·기한 · 핵심어 · 주체·권한 가리기 ───────────
    ① 숫자 — 숫자만 가리고 단위·조사는 남긴다("100분의 60" → "[?]분의 [?]").
       조문 번호(§81조의4, 제16조)는 근거 찾기용이라 가리지 않는다.
    ② 핵심어 — 세법 OX에서 O/X를 가르는 서술어·범위어·예외 표지.
       "하여야"만 가리면 "한다"가 남아 뜻이 새어 나가므로 서술어는 통째로 한 칸으로 가린다.
-      지문 하나에 KEY_CAP개까지만 가려 문장이 읽히지 않는 일을 막는다. */
+      지문 하나에 KEY_CAP개까지만 가려 문장이 읽히지 않는 일을 막는다.
+      v13에서 요건(갖추어야·충족·외에는·때만)·결론(적법/위법/각하)·방향(증가/감소)·
+      적용·효력을 보태 재정학·행정소송법 지문까지 훈련 대상이 되게 넓혔다.
+   ③ 주체·권한 — 국세청장·세무서장·처분청·재결청·기획재정부장관처럼 "누가 결정하는가"를
+      가른다. 같은 주체는 지문에서 첫 등장만 가리고 WHO_CAP개까지만(반복은 읽기만 해도 아는 부분). */
 var BL_RE = /([§제]\s?)?(\d[\d,]*(?:\.\d+)?)/g;
-var KEY_CAP = 5;
+var KEY_CAP = 5, WHO_CAP = 3;
 /* 앞쪽 묶음일수록 먼저 살아남는다(가릴 개수가 모자랄 때) */
 var KEY_GROUPS = [
   /* 서술어 — 반드시 / 할 수 있다 */
@@ -712,18 +745,64 @@ var KEY_GROUPS = [
    '제외한다','제외된다','제외되지','제외하여','제외하는','제외'],
   /* 범위·경계 — '초과분'은 용어라 남긴다 */
   ['이상','이하','이내','초과(?!분)','미만'],
-  /* 범위 한정·강조 */
-  ['일부','전부','모두','반드시','항상','오직','경우에만','한정한다','한정된다','한정하여','한정된']
+  /* 범위 한정·강조 — '일부'는 '발생일부터'의 일부(문자열)를 잡지 않게 뒤를 본다 */
+  ['일부(?!터)','전부','모두','반드시','항상','오직','경우에만','한정한다','한정된다','한정하여','한정된'],
+  /* 요건 표지 — 갖추어야 / 충족 / 외에는 / 때만 */
+  ['갖추어야','갖추지','갖춘','충족하여야','충족한','충족되지','충족시키','요건을\\s*갖추','요건을\\s*충족',
+   '한하여','한한다','때만','경우만','외에는','이외에는','불구하고','각각'],
+  /* 판단·결론 — 적법/위법, 각하/기각/인용 */
+  ['적법하다','적법한','위법하다','위법한','부적법','각하한다','기각한다','인용한다','취소한다','무효이다','유효하다'],
+  /* 방향·증감 — 재정학 지문의 O/X를 가르는 말 */
+  ['증가한다','증가하며','증가하고','증가한','증가시','감소한다','감소하며','감소하고','감소한','감소시',
+   '상승한다','하락한다','커진다','작아진다','높아진다','낮아진다','많아진다','적어진다','늘어난다','줄어든다',
+   '비례한다','반비례'],
+  /* 가능·성립·인정 */
+  ['가능하다','가능한','불가능','곤란하다','성립한다','성립하지','성립되','인정된다','인정되지','인정한다','부인한다'],
+  /* 적용·효력 */
+  ['적용한다','적용된다','적용되지','준용한다','준용된다','배제한다','배제된다','면제한다','면제된다','감면한다',
+   '효력이\\s*발생','효력이\\s*소멸','효력이\\s*상실']
 ];
 var KEY_RX = new RegExp(KEY_GROUPS.map(function(g){ return '(' + g.join('|') + ')'; }).join('|'), 'g');
+/* 주체·권한 — 긴 이름을 앞에 둔다(지방국세청장 → 국세청장, 관할 세무서장 → 세무서장).
+   납세의무자·피고 같은 당사자도 "누가"에 해당해 함께 가린다. */
+var WHO_WORDS = [
+  '관할\\s*세무서장','관할\\s*세무서','지방국세청장','국세청장','세무서장','처분청','재결청',
+  '기획재정부장관','기획재정부령','대통령령','국무총리','감사원장','감사원',
+  '대법원','헌법재판소','법원','시·도지사','도지사','시장·군수·구청장','시장·군수','구청장',
+  '관할\\s*관청','행정안전부장관','국세심사위원회','조세심판원','국세심판원','금융위원회','공정거래위원회',
+  '통계청장','한국은행','과세관청','주무관청','소관관청','행정청','처분권자','허가관청',
+  '비거주자','원천징수의무자','납세의무자','납세자','거주자','원고','피고','참가인'
+];
+var WHO_RX = new RegExp(WHO_WORDS.join('|'), 'g');
 
 function blindNumOn(){ return !!(S.flags && S.flags.blind); }
 function blindWordOn(){ return !!(S.flags && S.flags.blindw); }
-function blindOn(){ return blindNumOn() || blindWordOn(); }
+function blindWhoOn(){ return !!(S.flags && S.flags.blindwho); }
+function blindOn(){ return blindNumOn() || blindWordOn() || blindWhoOn(); }
+function blindModes(){
+  var m = [];
+  if(blindNumOn()) m.push('숫자·기한');
+  if(blindWordOn()) m.push('핵심어');
+  if(blindWhoOn()) m.push('주체·권한');
+  return m;
+}
 /* 모드 고르개 — null이면 "켜진 항목이 있으면 펼침" */
 var BLIND_PANEL = null;
 function blindPanelOpen(){
-  return BLIND_PANEL === null ? (blindNumOn() || blindWordOn()) : !!BLIND_PANEL;
+  return BLIND_PANEL === null ? blindOn() : !!BLIND_PANEL;
+}
+/* 주체·권한 — 같은 주체는 첫 등장만, 최대 WHO_CAP개 */
+function whoRanges(text){
+  var seen = {}, out = [], m, re = new RegExp(WHO_RX.source, 'g');
+  while((m = re.exec(text))){
+    var key = m[0].replace(/\s+/g, '').replace('관할', '');
+    if(seen[key]){ continue; }
+    seen[key] = 1;
+    out.push({a:m.index, b:m.index + m[0].length, kind:'who'});
+    if(out.length >= WHO_CAP) break;
+    if(m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
 }
 /* 가릴 구간을 모아 한 번에 그린다 — 두 번 replace하면 먼저 넣은 태그를 다시 읽어 깨진다 */
 function maskRanges(s){
@@ -733,7 +812,7 @@ function maskRanges(s){
     while((m = re.exec(text))){
       var pri = 0;
       for(var k = 1; k < m.length; k++){ if(m[k] !== undefined){ pri = k - 1; break; } }
-      hits.push({a:m.index, b:m.index + m[0].length, pri:pri});
+      hits.push({a:m.index, b:m.index + m[0].length, pri:pri, kind:'key'});
       if(m.index === re.lastIndex) re.lastIndex++;
     }
     if(hits.length > KEY_CAP){
@@ -742,11 +821,12 @@ function maskRanges(s){
     }
     out = out.concat(hits);
   }
+  if(blindWhoOn()){ out = out.concat(whoRanges(text)); }
   if(blindNumOn()){
     var m2, re2 = new RegExp(BL_RE.source, 'g');
     while((m2 = re2.exec(text))){
       if(m2[1]) continue;                    /* §81조의4 · 제16조 같은 조문 번호 */
-      out.push({a:m2.index, b:m2.index + m2[0].length, num:1});
+      out.push({a:m2.index, b:m2.index + m2[0].length, kind:'num'});
     }
   }
   out.sort(function(x, y){ return x.a - y.a; });
@@ -754,8 +834,8 @@ function maskRanges(s){
   var merged = [];
   out.forEach(function(r){
     var prev = merged[merged.length - 1];
-    if(prev && (!!prev.num === !!r.num) && /^\s*$/.test(text.slice(prev.b, r.a))){ prev.b = r.b; return; }
-    merged.push({a:r.a, b:r.b, num:r.num});
+    if(prev && prev.kind === r.kind && /^\s*$/.test(text.slice(prev.b, r.a))){ prev.b = r.b; return; }
+    merged.push({a:r.a, b:r.b, kind:r.kind});
   });
   return merged;
 }
@@ -765,10 +845,33 @@ function maskHTML(s, reveal){
   sp.forEach(function(r){
     if(r.a < last) return;                   /* 구간이 겹치면 앞의 것만 남긴다 */
     html += esc(text.slice(last, r.a)) +
-      '<b class="bl' + (r.num ? '' : ' key') + (reveal ? ' on' : '') + '" data-bl="1">' + esc(text.slice(r.a, r.b)) + '</b>';
+      '<b class="bl' + (r.kind === 'num' ? '' : r.kind === 'who' ? ' who' : ' key') + (reveal ? ' on' : '') + '" data-bl="1">' + esc(text.slice(r.a, r.b)) + '</b>';
     last = r.b;
   });
   return html + esc(text.slice(last));
+}
+/* 이 과목(범위)에서 각 모드가 몇 %의 지문에 빈칸을 만드는지 — 활용도 확인용 */
+var COV_CACHE = {};
+function blindCoverage(){
+  var sc = scope();
+  if(COV_CACHE[sc]) return COV_CACHE[sc];
+  var c = {total:0, num:0, key:0, who:0, any:0};
+  for(var i = 0; i < BANK.length; i++){
+    var q = BANK[i];
+    if(!inScope(q)) continue;
+    var t = String(q.stmt || '');
+    c.total++;
+    var hn = false, m, re1 = new RegExp(BL_RE.source, 'g');
+    while((m = re1.exec(t))){ if(!m[1]){ hn = true; break; } if(m.index === re1.lastIndex) re1.lastIndex++; }
+    var hk = new RegExp(KEY_RX.source).test(t);
+    var hw = new RegExp(WHO_RX.source).test(t);
+    if(hn) c.num++;
+    if(hk) c.key++;
+    if(hw) c.who++;
+    if(hn || hk || hw) c.any++;
+  }
+  COV_CACHE[sc] = c;
+  return c;
 }
 /* 숫자만 가리는 옛 경로 — 외부 점검·백업 호환용 */
 function blindHTML(s){
@@ -778,17 +881,26 @@ function blindHTML(s){
   });
 }
 function blindHint(){
-  if(blindNumOn() && blindWordOn()) return '탭하면 가린 숫자·기한과 핵심어가 보입니다. 먼저 기억으로 판단하세요.';
-  if(blindWordOn()) return '탭하면 가린 핵심어가 보입니다 — O/X를 가르는 서술어·범위어·예외 표지입니다.';
-  return '탭하면 숫자·기한이 보입니다. 먼저 기억으로 판단하세요.';
+  if(blindNumOn() && blindWordOn() && !blindWhoOn()) return '탭하면 가린 숫자·기한과 핵심어가 보입니다. 먼저 기억으로 판단하세요.';
+  if(blindWordOn() && !blindNumOn() && !blindWhoOn()) return '탭하면 가린 핵심어가 보입니다 — O/X를 가르는 서술어·범위어·예외 표지입니다.';
+  if(blindWhoOn() && !blindNumOn() && !blindWordOn()) return '탭하면 가린 주체·권한이 보입니다 — 누가 결정·처분하는지 먼저 떠올리세요.';
+  if(blindNumOn() && !blindWordOn() && !blindWhoOn()) return '탭하면 숫자·기한이 보입니다. 먼저 기억으로 판단하세요.';
+  var ms = blindModes();
+  return '탭하면 가린 ' + (ms.length === 2 ? ms.join('과 ') : ms.join(', ')) + '이 보입니다. 먼저 기억으로 판단하세요.';
 }
 function blindBarHTML(){
   if(!blindPanelOpen()) return '';
-  var n = blindNumOn(), w = blindWordOn();
+  var n = blindNumOn(), w = blindWordOn(), h = blindWhoOn();
+  var c = blindCoverage();
   return '<div class="blindbar" role="group" aria-label="빈칸 훈련 항목">' +
+    '<div class="brow">' +
     '<button type="button" class="bsel' + (n ? ' on' : '') + '" data-act="blind-mode" data-m="num" aria-pressed="' + n + '">🔢 숫자·기한</button>' +
-    '<button type="button" class="bsel' + (w ? ' on' : '') + '" data-act="blind-mode" data-m="word" aria-pressed="' + w + '">🔑 예외·요건</button>' +
+    '<button type="button" class="bsel' + (w ? ' on' : '') + '" data-act="blind-mode" data-m="word" aria-pressed="' + w + '">🔑 핵심어</button>' +
+    '<button type="button" class="bsel' + (h ? ' on' : '') + '" data-act="blind-mode" data-m="who" aria-pressed="' + h + '">👤 주체·권한</button>' +
     '<button type="button" class="bx" data-act="blind-close" aria-label="빈칸 훈련 접기">✕</button>' +
+    '</div>' +
+    '<div class="bcov">지문 ' + c.total.toLocaleString('ko-KR') + '개 중 빈칸 대상 — 숫자 ' + pct(c.num, c.total) +
+      '% · 핵심어 ' + pct(c.key, c.total) + '% · 주체 ' + pct(c.who, c.total) + '% · 합계 ' + pct(c.any, c.total) + '%</div>' +
     '</div>';
 }
 
@@ -1655,13 +1767,16 @@ function fmtDur(ms){
 function paceState(){
   var e = exam, per = parseInt(S.cfg.pace, 10) || 0;
   if(!e || !per) return null;
-  var ansd = 0;
-  (e.items || []).forEach(function(it){ if(it.pick) ansd++; });
+  var ansd = 0, cur = -1;
+  (e.items || []).forEach(function(it, i){ if(it.pick){ ansd++; } else if(cur < 0){ cur = i; } });
+  if(cur < 0) cur = Math.max(0, (e.items || []).length - 1);
   var el = Date.now() - (e.at || Date.now());
+  var lap = Math.max(0, Date.now() - (e.lapAt || e.at || Date.now()));
   var base = Math.max(1, ansd);            /* 답한 문항만큼의 예산(첫 문항은 1문항 예산) */
   var rec = base * per * 1000;
   return {per:per, ansd:ansd, total:(e.items || []).length, el:el, rec:rec, diff:el - rec,
-          left:((e.items || []).length - ansd) * per * 1000};
+          left:((e.items || []).length - ansd) * per * 1000,
+          lap:lap, cur:cur, overLap:lap > per * 1000};
 }
 function paceInner(p){
   if(!p) return '';
@@ -1669,6 +1784,7 @@ function paceInner(p){
   return '<span class="pv">⏱ ' + fmtClock(p.el) + '</span>' +
     '<span class="pr">권장 ' + fmtClock(p.rec) + ' (' + Math.max(1, p.ansd) + '문항) · ' +
       (over ? fmtClock(p.diff) + ' 느림' : fmtClock(-p.diff) + ' 여유') + '</span>' +
+    '<span class="pc' + (p.overLap ? ' hot' : '') + '">' + (p.cur + 1) + '번 ' + fmtClock(p.lap) + ' / ' + p.per + '초</span>' +
     '<span class="pl">답함 ' + p.ansd + ' / ' + p.total + ' · 남은 ' + (p.total - p.ansd) + '문항 ≈ ' + fmtClock(p.left) + '</span>';
 }
 function paceHTML(){
@@ -1678,23 +1794,31 @@ function paceHTML(){
 }
 function tickPace(){
   var el = document.getElementById('pacebar');
-  if(!el) return;
+  if(!el || !exam) return;
   var p = paceState();
   if(!p) return;
-  el.className = 'pacebar sticky ' + (p.diff > 0 ? 'over' : 'ok');
+  el.className = 'pacebar sticky ' + (p.diff > 0 ? 'over' : 'ok') + (p.overLap ? ' lapover' : '');
   el.innerHTML = paceInner(p);
+  /* 한 문항에 목표 시간을 넘겼을 때만, 5문항에 한 번꼴로 알린다 — 매 문항 토스트는 방해가 된다 */
+  var last = (typeof exam.warnedAt === 'number') ? exam.warnedAt : -5;
+  if(p.overLap && !document.hidden && p.ansd < p.total && p.ansd - last >= 5){
+    exam.warnedAt = p.ansd;
+    toast('⏱ ' + (p.cur + 1) + '번 문항에 ' + fmtDur(p.lap) + ' — ' + p.per + '초 페이스를 넘겼어요. 골라 두고 넘어가세요');
+  }
 }
 function startExam(subject, year, round){
   var ids = buildRoundIds({subject:subject, year:year, round:round}, 0);
   if(!ids.length){ toast('이 회차에 지문이 없습니다'); return; }
-  exam = {subject:subject, year:year, round:round, items:ids.map(function(id){ return {id:id, pick:null, ok:null}; }), at:Date.now()};
+  exam = {subject:subject, year:year, round:round, items:ids.map(function(id){ return {id:id, pick:null, ok:null}; }), at:Date.now(), lapAt:Date.now(), only:0};
   /* 같은 회차 답안지를 풀다 나갔다면 골라 둔 O/X를 되살린다(걸린 시간도 이어진다) */
   var d = S.exdraft;
   if(d && d.subject === subject && d.year === year && d.round === round && d.items){
     var saved = {};
-    d.items.forEach(function(it){ if(it.pick) saved[it.id] = it.pick; });
-    exam.items.forEach(function(it){ if(saved[it.id]) it.pick = saved[it.id]; });
+    d.items.forEach(function(it){ if(it.pick) saved[it.id] = it; });
+    exam.items.forEach(function(it){ var sv = saved[it.id]; if(sv){ it.pick = sv.pick; it.ms = sv.ms || 0; } });
     if(d.at) exam.at = d.at;
+    /* 다시 들어온 순간부터 문항 시간을 잰다(쉬는 동안 시간이 쌓여 바로 초과 알림이 뜨지 않게) */
+    exam.lapAt = Date.now();
   }
   session = null;
   navPush({name:'exam'});
@@ -1704,6 +1828,11 @@ function renderExam(v, b){
   if(!e){ HSTACK = []; view = {name:'home'}; render(); return; }
   var answered = e.items.filter(function(it){ return !!it.pick; }).length;
   var paceNow = parseInt(S.cfg.pace, 10) || 0;
+  var only = !!e.only;
+  var filterHTML = '<div class="xfilter" role="group" aria-label="답안지 보기">' +
+    '<button type="button" class="' + (only ? '' : 'on') + '" data-act="xfilter" data-f="0" aria-pressed="' + (!only) + '">전체 ' + e.items.length + '</button>' +
+    '<button type="button" class="' + (only ? 'on' : '') + '" data-act="xfilter" data-f="1" aria-pressed="' + only + '"' + (answered ? '' : ' disabled') + '>미응답 ' + (e.items.length - answered) + '</button>' +
+    '</div>';
   var paceSel = '<div class="pacesel" role="group" aria-label="실전 페이스">' +
     [[0, '끄기'], [60, '60초/문항'], [90, '90초/문항']].map(function(o){
       return '<button type="button" class="' + (paceNow === o[0] ? 'on' : '') + '" data-act="set-pace" data-p="' + o[0] +
@@ -1715,11 +1844,13 @@ function renderExam(v, b){
     '<div class="banner" style="margin-bottom:10px">O/X만 빠르게 골라 두고 한 번에 채점합니다. 제출하면 틀린 지문부터 해설로 이어집니다.</div>' +
     paceSel +
     paceHTML() +
+    filterHTML +
     '<div class="list">' + e.items.map(function(it, i){
       var q = byId.get(it.id);
-      return '<div class="xrow"><div class="xq"><span class="no">' + (i + 1) + '</span>' +
+      return '<div class="xrow' + (only && it.pick ? ' hide' : '') + '"><div class="xq"><span class="no">' + (i + 1) + '</span>' +
         '<div class="q">' + esc(q.stmt) + '</div></div>' +
-        '<div class="xtgl"><button type="button" data-act="xpick" data-i="' + i + '" data-v="O" class="' + (it.pick === 'O' ? 'on o' : '') + '">O</button>' +
+        '<div class="xtgl">' + (paceNow && it.ms ? '<span class="xms">' + fmtClock(it.ms) + '</span>' : '') +
+        '<button type="button" data-act="xpick" data-i="' + i + '" data-v="O" class="' + (it.pick === 'O' ? 'on o' : '') + '">O</button>' +
         '<button type="button" data-act="xpick" data-i="' + i + '" data-v="X" class="' + (it.pick === 'X' ? 'on x' : '') + '">X</button></div></div>';
     }).join('') + '</div>';
   b.innerHTML = '<button class="btn primary" id="xsubmit" type="button" data-act="xsubmit" style="min-height:64px">' +
@@ -1735,11 +1866,22 @@ function paintExamRow(i){
   if(!btns[1]) return;
   btns[0].className = (it.pick === 'O' ? 'on o' : '');
   btns[1].className = (it.pick === 'X' ? 'on x' : '');
+  /* 페이스를 켜 두었다면 그 문항에 걸린 시간을 O/X 옆에 남긴다 */
+  var paceOn = parseInt(S.cfg.pace, 10) || 0;
+  var msEl = row.querySelector('.xms');
+  if(paceOn && it.ms){
+    if(!msEl){
+      msEl = document.createElement('span'); msEl.className = 'xms';
+      row.querySelector('.xtgl').insertBefore(msEl, btns[0]);
+    }
+    msEl.textContent = fmtClock(it.ms);
+  }else if(msEl){ msEl.textContent = ''; }
+  row.classList.toggle('hide', !!exam.only && !!it.pick);
+  var ansd = exam.items.filter(function(x){ return !!x.pick; }).length;
   var sb = document.getElementById('xsubmit');
-  if(sb){
-    var ansd = exam.items.filter(function(x){ return !!x.pick; }).length;
-    sb.textContent = '채점하기 · ' + ansd + ' / ' + exam.items.length + ' 답함';
-  }
+  if(sb) sb.textContent = '채점하기 · ' + ansd + ' / ' + exam.items.length + ' 답함';
+  var fb = document.querySelector('.xfilter button[data-f="1"]');
+  if(fb){ fb.textContent = '미응답 ' + (exam.items.length - ansd); fb.disabled = !ansd; }
 }
 function submitExam(){
   if(!exam) return;
@@ -1771,6 +1913,24 @@ function renderExamResult(v, b){
         (perItem <= paceT * 1000 ? Math.max(0, Math.round((paceT * 1000 - perItem) / 1000)) + '초 빠름'
                                  : Math.round((perItem - paceT * 1000) / 1000) + '초 느림') : '') +
     '</div>';
+  /* 문항별 시간 — 페이스를 켰을 때 어느 문항이 발목을 잡았는지 결과에서 보여 준다 */
+  var timed = e.items.map(function(it, i){ return {i:i, ms:it.ms || 0, ok:it.ok}; })
+    .filter(function(x){ return x.ms > 0 && x.ms < 30 * 60 * 1000; })
+    .sort(function(a, b){ return b.ms - a.ms; });
+  var avgMs = timed.length ? timed.reduce(function(a, x){ return a + x.ms; }, 0) / timed.length : 0;
+  var overN = paceT ? timed.filter(function(x){ return x.ms > paceT * 1000; }).length : 0;
+  var slowHTML = (paceT && timed.length) ?
+    '<div class="card" style="margin-top:12px"><h3>⏱ 어디서 시간을 썼나</h3>' +
+      '<div class="tiny muted" style="margin-bottom:7px">문항당 평균 ' + fmtClock(avgMs) +
+        (overN ? ' · ' + paceT + '초 넘긴 문항 ' + overN + '개' : ' · 목표 시간 안에 들어왔어요') + '</div>' +
+      timed.slice(0, 3).map(function(x){
+        var sq = byId.get(e.items[x.i].id);
+        return '<div class="slowrow"><span class="no">' + (x.i + 1) + '</span>' +
+          '<span class="t">' + fmtClock(x.ms) + '</span>' +
+          '<span class="mk ' + (x.ok ? 'ok' : 'ng') + '">' + (x.ok ? '✓' : '✕') + '</span>' +
+          '<span class="q">' + esc(sq.stmt.slice(0, 46)) + (sq.stmt.length > 46 ? '…' : '') + '</span></div>';
+      }).join('') +
+    '</div>' : '';
   v.innerHTML =
     '<div class="card center" style="margin-top:12px">' +
       '<div class="muted tiny">' + esc(shortName(e.subject)) + ' ' + esc(e.year + ' ' + e.round) + ' 채점 결과</div>' +
@@ -1778,6 +1938,7 @@ function renderExamResult(v, b){
       '<div class="muted">' + e.done + '문항 중 ' + e.ok + '문항 정답 · 오답 ' + (e.done - e.ok) + (e.items.length - e.done ? ' · 미응답 ' + (e.items.length - e.done) : '') + '</div>' +
       timeHTML +
     '</div>' +
+    slowHTML +
     (eids.length ? '<button class="btn primary topcta" type="button" data-act="retry" data-ids="' + esc(eids.join(',')) + '">✕ 틀린 ' + eids.length + '문항만 다시</button>' : '') +
     '<div class="list" style="margin-top:12px">' + e.items.map(function(it, i){
       var q = byId.get(it.id);
@@ -1879,12 +2040,23 @@ function renderQuiz(v, b){
     ? '<span class="combo' + (s.combo >= 4 ? ' hot' : '') + '">🔥 ' + s.combo + '연속</span>' : '';
   var stmtHTML = maskHTML(q.stmt, isAnswered);   /* 답한 뒤에는 가린 값을 그대로 보여 준다 */
   var stmtHasKey = stmtHTML.indexOf('class="bl key"') >= 0;
+  var stmtHasWho = stmtHTML.indexOf('class="bl who"') >= 0;
+  var stmtHasNum = stmtHTML.indexOf('class="bl"') >= 0;
   var hintHTML = '';
   if(blindOn() && !isAnswered){
     var hint = blindHint();
-    if(blindWordOn() && !stmtHasKey){
-      hint = blindNumOn() ? hint + ' 이 지문엔 가릴 핵심어가 없습니다.'
-                          : '이 지문에는 가릴 핵심어가 없습니다 — 숫자·기한을 함께 켜면 훈련됩니다.';
+    var lacking = [];
+    if(blindNumOn() && !stmtHasNum) lacking.push({t:'숫자·기한', j:'이'});
+    if(blindWordOn() && !stmtHasKey) lacking.push({t:'핵심어', j:'가'});
+    if(blindWhoOn() && !stmtHasWho) lacking.push({t:'주체·권한', j:'이'});
+    var lackText = function(){
+      return lacking.map(function(x, i){ return x.t + (i === lacking.length - 1 ? x.j : ''); }).join('·');
+    };
+    if(lacking.length === blindModes().length){
+      hint = '이 지문에는 가릴 ' + lackText() + ' 없습니다' +
+        (blindNumOn() ? '.' : ' — 숫자·기한을 함께 켜면 훈련됩니다.');
+    }else if(lacking.length){
+      hint += ' 이 지문에는 가릴 ' + lackText() + ' 없습니다.';
     }
     hintHTML = '<div class="blhint">' + hint + '</div>';
   }
@@ -1925,7 +2097,7 @@ function renderQuiz(v, b){
       (S.wrong[q.id] ? '<span class="chip ng">누적 ' + S.wrong[q.id].w + '회 틀림</span>' : '') +
       '<button class="chip star ' + (S.book[q.id] ? 'on' : '') + '" type="button" data-act="bookq" data-id="' + esc(q.id) + '">' +
         (S.book[q.id] ? '★ 저장됨' : '☆ 저장') + '</button>' +
-      '<button class="chip blindc ' + (blindOn() ? 'on' : '') + '" type="button" data-act="blind" aria-pressed="' + (blindOn() ? 'true' : 'false') + '" aria-label="빈칸 훈련 — 숫자·기한·핵심어 가리기">🎯 빈칸 훈련' + (blindOn() ? ' ✓' : '') + '</button>' +
+      '<button class="chip blindc ' + (blindOn() ? 'on' : '') + '" type="button" data-act="blind" aria-pressed="' + (blindOn() ? 'true' : 'false') + '" aria-label="빈칸 훈련 — 숫자·기한·핵심어·주체 가리기">🎯 빈칸 훈련' + (blindOn() ? ' ✓' : '') + '</button>' +
     '</div>' +
     blindBarHTML() +
     progHTML +
@@ -2323,11 +2495,11 @@ document.addEventListener('click', function(ev){
   else if(act === 'blind'){
     var sy = window.scrollY;
     if(blindOn()){
-      S.flags.blind = false; S.flags.blindw = false; BLIND_PANEL = false; save(); render();
+      S.flags.blind = false; S.flags.blindw = false; S.flags.blindwho = false; BLIND_PANEL = false; save(); render();
       toast('빈칸 훈련을 껐습니다 — 지문을 그대로 보여 줍니다');
     }else{
       BLIND_PANEL = !blindPanelOpen(); render();
-      if(BLIND_PANEL) toast('가릴 항목을 고르세요 — 숫자·기한 / 예외·요건');
+      if(BLIND_PANEL) toast('가릴 항목을 고르세요 — 숫자·기한 / 핵심어 / 주체·권한');
     }
     try{ window.scrollTo(0, sy); }catch(e){}
   }
@@ -2335,11 +2507,14 @@ document.addEventListener('click', function(ev){
     var bmM = el.getAttribute('data-m'), bsy = window.scrollY;
     if(bmM === 'num') S.flags.blind = !S.flags.blind;
     else if(bmM === 'word') S.flags.blindw = !S.flags.blindw;
+    else if(bmM === 'who') S.flags.blindwho = !S.flags.blindwho;
     BLIND_PANEL = true;
     save(); render();
     try{ window.scrollTo(0, bsy); }catch(e){}
     toast(bmM === 'num'
       ? (S.flags.blind ? '숫자·기한을 가렸습니다 — ?를 탭하면 보입니다' : '숫자·기한을 그대로 보여 줍니다')
+      : bmM === 'who'
+      ? (S.flags.blindwho ? '주체·권한을 가렸습니다 — 누가 결정·처분하는지 떠올려 보세요' : '주체·권한을 그대로 보여 줍니다')
       : (S.flags.blindw ? '핵심어를 가렸습니다 — 서술어·범위어·예외 표지를 ?로' : '핵심어를 그대로 보여 줍니다'));
   }
   else if(act === 'blind-close'){
@@ -2377,10 +2552,22 @@ document.addEventListener('click', function(ev){
   }else if(act === 'xpick'){
     var xi = parseInt(el.getAttribute('data-i'), 10), xv = el.getAttribute('data-v');
     if(exam && exam.items[xi]){
-      exam.items[xi].pick = (exam.items[xi].pick === xv ? null : xv);
+      var xit = exam.items[xi];
+      xit.pick = (xit.pick === xv ? null : xv);
+      /* 그 문항에 머문 시간 — 페이스 초과를 문항 단위로 보고·결과에 남긴다 */
+      xit.ms = xit.pick ? Math.max(0, Date.now() - (exam.lapAt || exam.at || Date.now())) : 0;
+      exam.lapAt = Date.now();
       S.exdraft = exam; save();              /* 답안지도 한 문항씩 바로 저장 — 중간에 나와도 안 날아간다 */
       paintExamRow(xi);
+      /* 미응답만 보기 중에 마지막 문항을 골랐다면 빈 목록에 남기지 않고 전체로 돌린다 */
+      if(exam.only && !exam.items.some(function(it2){ return !it2.pick; })){ exam.only = 0; render(); }
     }
+  }else if(act === 'xfilter'){
+    if(!exam) return;
+    exam.only = parseInt(el.getAttribute('data-f'), 10) ? 1 : 0;
+    var xfy = window.scrollY;
+    render();
+    try{ window.scrollTo(0, exam.only ? 0 : xfy); }catch(e){}
   }else if(act === 'xsubmit'){
     if(!exam) return;
     var rest = exam.items.filter(function(it){ return !it.pick; }).length;
@@ -2522,6 +2709,17 @@ setInterval(tickPace, 1000);   /* 답안지 페이스 타이머 — 화면에 �
 window.addEventListener('pagehide', function(){ if(session){ snapshotSession(); save(); } });
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState === 'hidden' && session){ snapshotSession(); save(); }
+  /* 다른 앱을 보는 동안은 답안지 시간에서 뺀다 — 돌아왔을 때 억울하게 '초과'가 뜨지 않게 */
+  if(!exam) return;
+  if(document.hidden){ exam.hidAt = Date.now(); }
+  else if(exam.hidAt){
+    var hidMs = Date.now() - exam.hidAt;
+    exam.hidAt = 0;
+    if(hidMs > 1000 && hidMs < 6 * 3600 * 1000){
+      exam.at = (exam.at || Date.now()) + hidMs;
+      exam.lapAt = (exam.lapAt || Date.now()) + hidMs;
+    }
+  }
 });
 (function splash(){
   var el = document.getElementById('splash');
@@ -2554,7 +2752,9 @@ window.__sebeop = {
   suggestCause: suggestCause, causeCounts: causeCounts, blindHTML: blindHTML, CAUSE: CAUSE,
   setBlind: function(v){ S.flags.blind = !!v; save(); render(); },
   setBlindWord: function(v){ S.flags.blindw = !!v; save(); render(); },
-  maskHTML: maskHTML, blindNumOn: blindNumOn, blindWordOn: blindWordOn, blindPanel: blindPanelOpen,
+  setBlindWho: function(v){ S.flags.blindwho = !!v; save(); render(); },
+  maskHTML: maskHTML, maskRanges: maskRanges, blindCoverage: blindCoverage,
+  blindNumOn: blindNumOn, blindWordOn: blindWordOn, blindWhoOn: blindWhoOn, blindPanel: blindPanelOpen,
   causeByTopic: causeByTopic, causeTopMap: causeTopMap, fmtClock: fmtClock, paceState: paceState,
   setPace: function(v){ S.cfg.pace = parseInt(v, 10) || 0; save(); render(); },
   rc: function(){ return S.rc; }, spd: function(){ return S.spd; }
