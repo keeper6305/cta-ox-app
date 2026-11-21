@@ -98,7 +98,7 @@ async function run(){
   FID = 'f390';
   await reset();
   t('390 홈 렌더', !!q('.goal'));
-  var cw390 = D().documentElement.clientWidth;
+  var cw390 = fr().width;   /* iframe 설계 폭 — 데스크톱 스크롤바 폭에 휘둘리지 않게 */
   t('390 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw390 + 1);
   clickSel('#bar button[data-act="daily"]');
   await wait(80);
@@ -577,6 +577,14 @@ async function suite(){
   eq('모드 3개', qa('.blindbar .bsel').length, 3);
   t('커버리지 줄 있음', /빈칸 대상/.test((q('.blindbar .bcov') || {}).innerText || ''), (q('.blindbar .bcov') || {}).innerText);
   t('커버리지 % 표시', /숫자 \d+% · 핵심어 \d+% · 주체 \d+% · 합계 \d+%/.test((q('.blindbar .bcov') || {}).innerText || ''), (q('.blindbar .bcov') || {}).innerText);
+  t('360에서 고르개 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= 361,
+    'scrollW=' + D().documentElement.scrollWidth);
+  t('360 고르개 버튼 3개가 한 줄', (function(){
+    var bs = qa('.blindbar .brow .bsel');
+    return bs.length === 3 && bs.every(function(b){ return b.getBoundingClientRect().width > 44; });
+  })(), qa('.blindbar .brow .bsel').map(function(b){ return Math.round(b.getBoundingClientRect().width); }).join('/'));
+  t('360 고르개 높이 100px 이하', (q('.blindbar').getBoundingClientRect().height <= 100),
+    Math.round(q('.blindbar').getBoundingClientRect().height));
   clickSel('.blindbar .bsel[data-m="who"]'); await wait(90);
   t('주체 모드 켜짐', api().state.flags.blindwho === true);
   t('주체 안내 문구', body().indexOf('주체·권한이 보입니다') >= 0, body().slice(0, 200));
@@ -590,8 +598,7 @@ async function suite(){
   var many = api().maskHTML('국세청장, 기획재정부장관, 처분청, 법원이 모두 관계한다');
   t('한 지문 주체 3개까지만', (many.match(/bl who/g) || []).length <= 3, (many.match(/bl who/g) || []).length);
   var cov = api().blindCoverage();
-  eq('커버리지 총 지문 수', cov.total, api().bank.length);
-  t('핵심어 커버리지 v12(822)보다 늘었다', cov.key > 822, 'key=' + cov.key);
+  eq('커버리지 총 지문 수', cov.total, api().bank.length);  t('핵심어 커버리지 v12(822)보다 늘었다', cov.key > 822, 'key=' + cov.key);
   t('주체 커버리지 187보다 늘었다', cov.who > 187, 'who=' + cov.who);
   t('합계는 핵심어 이상', cov.any >= cov.key, JSON.stringify(cov));
   clickSel('.blindbar .bsel[data-m="num"]'); await wait(70);

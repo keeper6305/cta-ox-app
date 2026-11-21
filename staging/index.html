@@ -885,7 +885,8 @@ function blindHint(){
   if(blindWordOn() && !blindNumOn() && !blindWhoOn()) return '탭하면 가린 핵심어가 보입니다 — O/X를 가르는 서술어·범위어·예외 표지입니다.';
   if(blindWhoOn() && !blindNumOn() && !blindWordOn()) return '탭하면 가린 주체·권한이 보입니다 — 누가 결정·처분하는지 먼저 떠올리세요.';
   if(blindNumOn() && !blindWordOn() && !blindWhoOn()) return '탭하면 숫자·기한이 보입니다. 먼저 기억으로 판단하세요.';
-  return '탭하면 가린 ' + blindModes().join('·') + '이 보입니다. 먼저 기억으로 판단하세요.';
+  var ms = blindModes();
+  return '탭하면 가린 ' + (ms.length === 2 ? ms.join('과 ') : ms.join(', ')) + '이 보입니다. 먼저 기억으로 판단하세요.';
 }
 function blindBarHTML(){
   if(!blindPanelOpen()) return '';
@@ -1813,8 +1814,8 @@ function startExam(subject, year, round){
   var d = S.exdraft;
   if(d && d.subject === subject && d.year === year && d.round === round && d.items){
     var saved = {};
-    d.items.forEach(function(it){ if(it.pick) saved[it.id] = it.pick; });
-    exam.items.forEach(function(it){ if(saved[it.id]) it.pick = saved[it.id]; });
+    d.items.forEach(function(it){ if(it.pick) saved[it.id] = it; });
+    exam.items.forEach(function(it){ var sv = saved[it.id]; if(sv){ it.pick = sv.pick; it.ms = sv.ms || 0; } });
     if(d.at) exam.at = d.at;
     /* 다시 들어온 순간부터 문항 시간을 잰다(쉬는 동안 시간이 쌓여 바로 초과 알림이 뜨지 않게) */
     exam.lapAt = Date.now();
@@ -1829,8 +1830,8 @@ function renderExam(v, b){
   var paceNow = parseInt(S.cfg.pace, 10) || 0;
   var only = !!e.only;
   var filterHTML = '<div class="xfilter" role="group" aria-label="답안지 보기">' +
-    '<button type="button" class="' + (only ? '' : 'on') + '" data-act="xfilter" data-f="0">전체 ' + e.items.length + '</button>' +
-    '<button type="button" class="' + (only ? 'on' : '') + '" data-act="xfilter" data-f="1"' + (answered ? '' : ' disabled') + '>미응답 ' + (e.items.length - answered) + '</button>' +
+    '<button type="button" class="' + (only ? '' : 'on') + '" data-act="xfilter" data-f="0" aria-pressed="' + (!only) + '">전체 ' + e.items.length + '</button>' +
+    '<button type="button" class="' + (only ? 'on' : '') + '" data-act="xfilter" data-f="1" aria-pressed="' + only + '"' + (answered ? '' : ' disabled') + '>미응답 ' + (e.items.length - answered) + '</button>' +
     '</div>';
   var paceSel = '<div class="pacesel" role="group" aria-label="실전 페이스">' +
     [[0, '끄기'], [60, '60초/문항'], [90, '90초/문항']].map(function(o){
@@ -2045,14 +2046,17 @@ function renderQuiz(v, b){
   if(blindOn() && !isAnswered){
     var hint = blindHint();
     var lacking = [];
-    if(blindNumOn() && !stmtHasNum) lacking.push('숫자·기한');
-    if(blindWordOn() && !stmtHasKey) lacking.push('핵심어');
-    if(blindWhoOn() && !stmtHasWho) lacking.push('주체');
+    if(blindNumOn() && !stmtHasNum) lacking.push({t:'숫자·기한', j:'이'});
+    if(blindWordOn() && !stmtHasKey) lacking.push({t:'핵심어', j:'가'});
+    if(blindWhoOn() && !stmtHasWho) lacking.push({t:'주체·권한', j:'이'});
+    var lackText = function(){
+      return lacking.map(function(x, i){ return x.t + (i === lacking.length - 1 ? x.j : ''); }).join('·');
+    };
     if(lacking.length === blindModes().length){
-      hint = '이 지문에는 가릴 ' + lacking.join('·') + '이 없습니다' +
+      hint = '이 지문에는 가릴 ' + lackText() + ' 없습니다' +
         (blindNumOn() ? '.' : ' — 숫자·기한을 함께 켜면 훈련됩니다.');
     }else if(lacking.length){
-      hint += ' 이 지문에는 가릴 ' + lacking.join('·') + '이 없습니다.';
+      hint += ' 이 지문에는 가릴 ' + lackText() + ' 없습니다.';
     }
     hintHTML = '<div class="blhint">' + hint + '</div>';
   }
@@ -2555,6 +2559,8 @@ document.addEventListener('click', function(ev){
       exam.lapAt = Date.now();
       S.exdraft = exam; save();              /* 답안지도 한 문항씩 바로 저장 — 중간에 나와도 안 날아간다 */
       paintExamRow(xi);
+      /* 미응답만 보기 중에 마지막 문항을 골랐다면 빈 목록에 남기지 않고 전체로 돌린다 */
+      if(exam.only && !exam.items.some(function(it2){ return !it2.pick; })){ exam.only = 0; render(); }
     }
   }else if(act === 'xfilter'){
     if(!exam) return;
