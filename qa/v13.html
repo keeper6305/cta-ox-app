@@ -557,6 +557,10 @@ async function suite(){
   api().exam().lapAt = Date.now() - 61000;
   await wait(1250);
   t('60초 초과 → 1회 토스트', (q('#toast') || {}).innerText.indexOf('페이스를 넘겼어요') >= 0, (q('#toast') || {}).innerText);
+  t('토스트가 하단 버튼을 가리지 않는다', (function(){
+    var tr = q('#toast').getBoundingClientRect(), br = q('#bar').getBoundingClientRect();
+    return tr.bottom <= br.top + 2;
+  })(), (function(){ var tr = q('#toast').getBoundingClientRect(), br = q('#bar').getBoundingClientRect(); return 'toast.bottom=' + Math.round(tr.bottom) + ' bar.top=' + Math.round(br.top); })());
   eq('초과 알림 표시 남김', api().exam().warnedAt, 1);
   t('초과 문항 색 강조', q('#pacebar .pc').className.indexOf('hot') >= 0, q('#pacebar .pc').className);
   t('페이스 바 초과 표시', q('#pacebar').className.indexOf('lapover') >= 0, q('#pacebar').className);
@@ -574,6 +578,11 @@ async function suite(){
   t('어디서 시간을 썼나 카드', body().indexOf('어디서 시간을 썼나') >= 0, body().slice(0, 300));
   t('평균·목표 시간 안내', /문항당 평균 \d+:\d\d/.test(body()) && /(초 넘긴 문항 \d+개|목표 시간 안에 들어왔어요)/.test(body()), body().slice(0, 300));
   eq('느린 문항 행 수', qa('.slowrow').length, 1);
+  t('결과 하단 버튼이 한 줄', (function(){
+    var b = q('#bar button[data-act="wrong"]'); if(!b) return false;
+    var r = b.getBoundingClientRect();
+    return r.height < 62 && b.scrollWidth <= b.clientWidth + 1;
+  })(), (function(){ var b = q('#bar button[data-act="wrong"]'); if(!b) return 'none'; var r = b.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height) + ' sw=' + b.scrollWidth + ' cw=' + b.clientWidth; })());
   clickSel('button[data-act="home"]'); await wait(70);
 
   log('sec', 'P. 주체·권한 빈칸 훈련');

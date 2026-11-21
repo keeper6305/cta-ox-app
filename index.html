@@ -985,6 +985,10 @@ function shuffle(arr, rnd){
 }
 function toast(msg, actionLabel, action){
   var el = document.getElementById('toast');
+  /* 하단 버튼을 가리지 않게 푸터 높이를 재어 그 위에 띄운다 */
+  var bar = document.getElementById('bar');
+  var bh = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+  el.style.bottom = (bh > 40 ? bh + 8 : 96) + 'px';
   el.innerHTML = esc(msg) + (actionLabel ? '<button type="button">' + esc(actionLabel) + '</button>' : '');
   if(actionLabel){
     el.querySelector('button').addEventListener('click', function(){ el.classList.remove('on'); action && action(); });
@@ -1951,7 +1955,7 @@ function renderExamResult(v, b){
     }).join('') + '</div>';
   b.innerHTML = '<div class="row">' +
     '<button class="btn" type="button" data-act="home">홈</button>' +
-    '<button class="btn' + (eids.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button></div>';
+    '<button class="btn' + (eids.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중 이어서</button></div>';
 }
 
 /* 오답 원인 태그 — 틀린 직후 한 번 고르면 약점 통계에 쌓인다 */
@@ -2201,7 +2205,7 @@ function renderDone(v, b){
     '</div>';
   b.innerHTML = '<div class="row">' +
     '<button class="btn" type="button" data-act="home">홈</button>' +
-    '<button class="btn' + (wIds.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중으로 이어서</button></div>';
+    '<button class="btn' + (wIds.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중 이어서</button></div>';
 }
 
 function renderWrong(v, b){
