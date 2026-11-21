@@ -437,7 +437,7 @@ html[data-theme="dark"]{--ct-num:#fbbf24; --ct-who:#a5b4fc; --ct-exc:#5eead4; --
 .cmatrix .cells{display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:6px;}
 .cmatrix .c{
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  min-height:40px; padding:3px 2px; border-radius:9px; border:1px solid var(--line); background:var(--surface2);
+  min-height:44px; padding:4px 2px; border-radius:9px; border:1px solid var(--line); background:var(--surface2);
   color:var(--muted); font-family:inherit; font-size:.62rem; font-weight:800; letter-spacing:-.01em;
 }
 .cmatrix .c .v{font-size:.9rem; font-weight:900; line-height:1.1; color:var(--muted);}
@@ -745,8 +745,8 @@ var KEY_GROUPS = [
    '제외한다','제외된다','제외되지','제외하여','제외하는','제외'],
   /* 범위·경계 — '초과분'은 용어라 남긴다 */
   ['이상','이하','이내','초과(?!분)','미만'],
-  /* 범위 한정·강조 */
-  ['일부','전부','모두','반드시','항상','오직','경우에만','한정한다','한정된다','한정하여','한정된'],
+  /* 범위 한정·강조 — '일부'는 '발생일부터'의 일부(문자열)를 잡지 않게 뒤를 본다 */
+  ['일부(?!터)','전부','모두','반드시','항상','오직','경우에만','한정한다','한정된다','한정하여','한정된'],
   /* 요건 표지 — 갖추어야 / 충족 / 외에는 / 때만 */
   ['갖추어야','갖추지','갖춘','충족하여야','충족한','충족되지','충족시키','요건을\\s*갖추','요건을\\s*충족',
    '한하여','한한다','때만','경우만','외에는','이외에는','불구하고','각각'],

@@ -563,6 +563,11 @@ async function suite(){
   q('#toast').textContent = '';
   await wait(1300);
   t('같은 문항에 또 알리지 않음', q('#toast').innerText === '', q('#toast').innerText);
+  /* 답안지를 나갔다 와도 문항별 시간이 남아야 한다 */
+  clickSel('#homebtn'); await wait(100);
+  clickSel('button[data-act="resume-exam"]'); await wait(110);
+  t('이어서도 문항 시간 유지', (api().exam().items[0].ms || 0) > 0, api().exam().items[0].ms);
+  t('이어서도 그 시간이 화면에', /^\d+:\d\d$/.test((q('.xrow .xms') || {}).innerText || ''), (q('.xrow .xms') || {}).innerText);
   W().confirm = function(){ return true; };
   clickSel('#xsubmit'); await wait(150);
   eq('채점 결과', api().view().name, 'examresult');
@@ -606,6 +611,7 @@ async function suite(){
   var both3 = api().maskHTML('국세청장은 3년 이내에 처분할 수 있다');
   t('숫자·핵심어·주체가 한 지문에', both3.indexOf('bl who') > 0 && both3.indexOf('bl key') > 0 && both3.indexOf('class="bl"') > 0, both3);
   t('주체 가린 칸은 색이 다르다', (function(){ var e = q('.bl.who'); return !!e && W().getComputedStyle(e).boxShadow !== 'none'; })(), 'no .bl.who');
+  t('발생일부터의 \'일부\'는 가리지 않는다', api().maskHTML('체납 발생일부터 1년').indexOf('bl key') < 0, api().maskHTML('체납 발생일부터 1년'));
   var whoQ = api().bank.filter(function(x){ return x.stmt.length < 110 && api().maskHTML(x.stmt).indexOf('bl who') > 0; })[0];
   t('주체 있는 지문 확보', !!whoQ, whoQ ? whoQ.id : 'none');
   api().startRetry([whoQ.id]); await wait(90);
