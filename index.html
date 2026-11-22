@@ -402,7 +402,9 @@ html[data-theme="dark"] .combo{color:var(--accent);}
 /* 주체·권한은 색으로 구분한다 — 여러 항목을 같이 켜도 무엇을 가린 칸인지 보이게 */
 .bl.who{display:inline-block; min-width:2.2em; padding:0 5px; border-radius:6px;
   box-shadow:inset 0 -2px 0 color-mix(in srgb, var(--ct-who) 70%, transparent);}
-.bl.on{background:var(--hl-chip); color:inherit;}
+/* 공개한 칸은 글자 흐름을 되돌린다 — inline-block의 최소 폭·좌우 여백이 남아 있으면
+   "15일 [이내] 에" 처럼 조사가 떨어져 보인다. */
+.bl.on{background:var(--hl-chip); color:inherit; display:inline; min-width:0; padding:0 1px; border-radius:4px;}
 .bl.on::after{content:none;}
 .blhint{margin-top:8px; font-size:.76rem; color:var(--muted);}
 
@@ -530,6 +532,44 @@ main#view.qz{display:flex; flex-direction:column;}
 .doneacts{display:flex; flex-direction:column; gap:8px;}
 .doneacts .row .btn, #bar .row .btn{width:auto; flex:1 1 0; min-width:0;}
 .topcta{margin-top:12px;}
+
+/* ═══════════ v14 · 함정 대비어 · 취약 드릴 · 시간 분석 ═══════════ */
+/* 대비어는 답을 고른 뒤에만 붙는다 — 문제 화면에서 미리 칠하면 정답 스포일러 */
+.tw{
+  background:var(--ng-bg); border-radius:4px; padding:0 3px; font-weight:800;
+  box-shadow:inset 0 -2px 0 color-mix(in srgb, var(--ng) 62%, transparent);
+  -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+.traps{margin-top:12px; border:1px solid var(--line); border-radius:16px; padding:12px 14px; background:var(--surface);}
+.traps .ttl{font-size:.82rem; font-weight:800; letter-spacing:-.01em;}
+.traps .sub{font-size:.7rem; color:var(--muted); margin-top:2px; line-height:1.5; word-break:keep-all;}
+.traps .tp{padding-top:8px; margin-top:8px; border-top:1px dashed var(--line);}
+.traps .wr{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.traps .w{
+  font-size:.76rem; font-weight:800; padding:2px 8px; border-radius:999px;
+  background:var(--ng-bg); color:var(--ng); white-space:nowrap;
+}
+.traps .w.alt{background:var(--surface2); color:var(--muted);}
+.traps .vs{font-size:.72rem; color:var(--muted); font-weight:800;}
+.traps .tip{font-size:.72rem; color:var(--muted); margin-top:4px; line-height:1.55; word-break:keep-all;}
+
+/* 취약 드릴 — 오답·모름·느린 문항을 한 세트로 */
+.drillcard{
+  display:flex; align-items:center; gap:10px; margin-top:12px; padding:12px 14px; border-radius:16px;
+  border:1.5px solid var(--primary); background:var(--surface); box-shadow:var(--shadow);
+}
+.drillcard .bd{min-width:0; flex:1;}
+.drillcard .t{font-weight:800; font-size:.92rem; letter-spacing:-.02em;}
+.drillcard .t b{font-variant-numeric:tabular-nums;}
+.drillcard .d{font-size:.73rem; color:var(--muted); font-weight:600; margin-top:2px; word-break:keep-all;}
+.drillcard .btn{width:auto; flex:none; min-height:44px; white-space:nowrap; padding:8px 12px;}
+/* 시간 × 정답률 */
+.tbrow{display:flex; align-items:center; gap:8px; margin-top:7px;}
+.tbrow .lb{flex:0 0 60px; font-size:.74rem; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums;}
+.tbrow .b2{flex:1 1 40px; height:8px; border-radius:99px; background:var(--surface2); overflow:hidden;}
+.tbrow .b2 i{display:block; height:100%; border-radius:99px; background:var(--primary);}
+.tbrow .n{flex:0 0 72px; text-align:right; font-size:.72rem; font-weight:800; font-variant-numeric:tabular-nums;}
+.tbrow.dim .lb, .tbrow.dim .n{opacity:.5;}
 </style>
 </head>
 <body>
@@ -564,7 +604,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=13"></script>
+<script src="./bank.js?v=14"></script>
 <script>
 (function(){
 'use strict';
@@ -633,7 +673,7 @@ var KEY = 'sebeop_ox_v1';
 function blank(){
   return {v:1, ans:{}, wrong:{}, days:{}, daily:{}, streak:{cur:0,best:0,last:null},
           cfg:{daily:10, count:10, scope:'전체', roundN:0, pace:0}, flags:{installDismissed:false, theme:'system', blind:false, blindw:false, blindwho:false},
-          book:{}, memo:{}, dnk:{}, resume:null, exdraft:null, rc:{}, spd:{n:0, ms:0}};
+          book:{}, memo:{}, dnk:{}, resume:null, exdraft:null, rc:{}, spd:{n:0, ms:0}, att:[]};
 }
 var S = load();
 
@@ -654,6 +694,7 @@ function load(){
     b.exdraft = (o.exdraft && o.exdraft.items && o.exdraft.items.length) ? o.exdraft : null;
     b.rc = (o.rc && typeof o.rc === 'object') ? o.rc : {};
     b.spd = (o.spd && typeof o.spd === 'object' && o.spd.n) ? o.spd : {n:0, ms:0};
+    b.att = Array.isArray(o.att) ? o.att.slice(-600) : [];   /* v14 문항별 소요 시간(최근 600개) */
     /* 문항 수는 10문제 고정 — 예전 20·30 설정은 10으로 당기고, 회차는 '전체(0)' 또는 '10'만 둔다. */
     b.cfg.daily = 10; b.cfg.count = 10;
     b.cfg.roundN = (parseInt(b.cfg.roundN, 10) || 0) === 0 ? 0 : 10;
@@ -775,6 +816,150 @@ var WHO_WORDS = [
 ];
 var WHO_RX = new RegExp(WHO_WORDS.join('|'), 'g');
 
+/* ─────────── v14 · 개념어 사전 (재정학·회계학·행소법) ───────────
+   v13까지 핵심어는 서술어(하여야 한다·포함한다·증가한다)뿐이라 재정학 23%·회계 35% 지문만
+   걸렸다. O/X를 가르는 개념어(탄력성·대체효과·공정가치·원고적격…)를 사람이 검수해 넣어
+   재정학 53%·회계 74%로 끌어올렸다. 용어는 **단어 경계**에서만 가린다 — '자본시장'의
+   '자본', '부채비율'의 '부채'처럼 더 긴 낱말 속에서 쪼개면 문장이 깨진다. */
+var TERM_WORDS = [
+  '법인세기간배분', '유의적금융요소', '이연법인세부채', '이연법인세자산', '포괄손익계산서', '공정가치모형', '공정가치서열', '균형예산귀착',
+  '근로장려세제', '기대신용손실', '기타포괄손익', '내재파생상품', '노동공급곡선', '매각예정자산', '별도재무제표', '부당결부금지', '사회후생함수',
+  '신뢰보호원칙', '연결재무제표', '위험회피수단', '위험회피회계', '의무이행소송', '자동안정장치', '특별권력관계', '평균소비성향', '한계소비성향',
+  'IS-LM', '가격탄력성', '가처분소득', '검증가능성', '공공서비스', '공급탄력성', '규모의경제', '당사자소송', '도덕적해이', '로렌츠곡선',
+  '목적적합성', '무차별곡선', '반사적이익', '법인세효과', '본인대리인', '비교가능성', '사용권자산', '상각후원가', '세수탄력성', '소득재분배',
+  '소득탄력성', '수요탄력성', '수직적형평', '수평적형평', '순공정가치', '외부불경제', '유효이자율', '이연법인세', '이해가능성', '자본변동표',
+  '자산재평가', '자연실업률', '재무상태표', '재평가모형', '정보비대칭', '조세부담률', '조세중립성', '집행부정지', '투자부동산', '특수관계자',
+  '필립스곡선', '현금흐름표', '협의의소익', '회수가능액', 'IS곡선', 'LM곡선', '가격차별', '감가상각', '감액한다', '거래가격', '거래원가',
+  '계약부채', '계약원가', '계약자산', '고전학파', '공공부조', '공리주의', '공시한다', '공유자원', '공정가치', '구축효과', '국민소득',
+  '균형재정', '금융부채', '금융자산', '기능통화', '기속행위', '내용연수', '내재가치', '노동공급', '단기매매', '당기손익', '당좌비율',
+  '대체효과', '리스부채', '만기보유', '매출채권', '무임승차', '무형자산', '법규명령', '변동대가', '부채비율', '부채총계', '분류기준',
+  '분류된다', '분류한다', '불가변력', '불가쟁력', '비경합성', '비례원칙', '비배제성', '비용편익', '사업결합', '사용가치', '사정판결',
+  '사회보험', '사회후생', '세수함수', '소득효과', '손상검사', '손상차손', '수익인식', '수행의무', '순액기준', '승수효과', '시간가치',
+  '시장실패', '오류수정', '옵션가격', '완전경쟁', '외부경제', '외부효과', '우발부채', '원가모형', '원고적격', '위험회피', '유동비율',
+  '유형자산', '유효이자', '인식기준', '인식시점', '인식하지', '인식한다', '자본총계', '자산총계', '잔존가치', '장부금액', '재고자산',
+  '재량행위', '재무성과', '재무제표', '재정정책', '적자재정', '절대귀착', '정부개입', '정부실패', '제거한다', '제소기간', '조세귀착',
+  '조세부담', '조세수입', '중단영업', '즉시강제', '지니계수', '지분상품', '직권취소', '질적특성', '집행정지', '차별귀착', '처분가능',
+  '초과부담', '총액기준', '최적조세', '충당부채', '취득원가', '측정기준', '측정대상', '측정하지', '측정한다', '통화정책', '통화주의',
+  '파생상품', '평가기준', '평균비용', '평균세율', '평등원칙', '표시된다', '표시통화', '표시한다', '피고적격', '한계비용', '한계생산',
+  '한계세율', '한계효용', '항고소송', '행정규칙', '행정소송', '행정심판', '행정행위', '현금흐름', '환율변동', '회계정책', '회계추정',
+  '경합성', '공공재', '공정력', '공평성', '과징금', '기펜재', '누진세', '담세력', '대체재', '리카도', '면세점', '물품세', '배제성',
+  '보완재', '부작위', '비례세', '비용화', '소유권', '수준3', '신뢰성', '역선택', '역진세', '열등재', '영업권', '예산선', '외부성',
+  '원가법', '자본재', '자본화', '재분배', '적시성', '정상재', '존속력', '중요성', '지분법', '진행률', '집행력', '처분성', '총공급',
+  '총수요', '케인즈', '탄력성', '파레토', '할인율', '행정벌', '형평성', '효율성', '각하', '공시', '과점', '기각', '독점', '부채',
+  '손익', '승수', '인용', '자본', '자산', '주석'
+];
+var TERM_RX = new RegExp(TERM_WORDS.join('|'), 'g');
+/* 용어 뒤에 올 수 있는 것 — 조사·서술 어미, 또는 한글이 아닌 글자(끝·공백·구두점) */
+var TERM_TAIL = /^(?:은|는|이|가|을|를|의|에서|에게|에는|에도|으로서|으로|로|과|와|도|만|보다|부터|까지|처럼|라고|라는|라도|이다|이며|이고|이나|인지|인가|하지|한다|하여|하면|되면|된다|되는|되지)?(?![가-힣])/;
+function isHangul(ch){
+  if(!ch) return false;
+  var c = ch.charCodeAt(0);
+  return c >= 0xAC00 && c <= 0xD7A3;
+}
+function termHits(text){
+  var out = [], m, re = new RegExp(TERM_RX.source, 'g');
+  while((m = re.exec(text))){
+    var a = m.index, b = a + m[0].length;
+    if(!isHangul(a > 0 ? text.charAt(a - 1) : '') && TERM_TAIL.test(text.slice(b))){
+      out.push({a:a, b:b, kind:'key', pri:KEY_GROUPS.length});
+    }
+    if(m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
+}
+/* 같은 자리에 걸린 짧은 칸은 버린다 — '초과'와 '초과부담'이 겹치면 긴 쪽만 남긴다 */
+function dropContained(hits){
+  hits.sort(function(x, y){ return (x.a - y.a) || ((y.b - y.a) - (x.b - x.a)); });
+  var keep = [];
+  for(var i = 0; i < hits.length; i++){
+    var last = keep[keep.length - 1];
+    if(last && hits[i].a >= last.a && hits[i].b <= last.b) continue;
+    keep.push(hits[i]);
+  }
+  return keep;
+}
+
+/* ─────────── v14 · 함정 대비어 ───────────
+   기출 OX는 한 단어에서 갈린다: 의무(하여야 한다)와 재량(할 수 있다), 경계(이상/초과),
+   범위(포함/제외), 기한(이내/경과). 답을 고르기 전에 칠하면 정답을 흘리므로,
+   **답한 뒤(해설)에만** 지문·해설에 표시하고, 무엇과 짝인지 한 줄로 짚어 준다. */
+var TRAP_PAIRS = [
+  {a:'하여야\\s*한다|하여야\\s*하며|하여야\\s*하는|하여야\\s*할|해야\\s*한다|해야\\s*하며|해야\\s*하는|되어야\\s*한다|되어야\\s*하며|되어야\\s*할',
+   b:'할\\s*수\\s*있다|할\\s*수\\s*없다|할\\s*수\\s*있으며|할\\s*수\\s*있고|할\\s*수\\s*있는',
+   aw:'하여야 한다', bw:'할 수 있다 (재량)',
+   tip:'‘하여야 한다’는 예외 없는 의무, ‘할 수 있다’는 재량 — 이 한 마디가 O/X를 가릅니다.'},
+  {a:'이상', b:'초과(?!분)', aw:'이상 (그 값 포함)', bw:'초과 (그 값 미포함)',
+   tip:'‘이상’은 그 값을 포함하고, ‘초과’는 포함하지 않습니다.'},
+  {a:'이하', b:'미만', aw:'이하 (그 값 포함)', bw:'미만 (그 값 미포함)',
+   tip:'‘이하’는 그 값을 포함하고, ‘미만’은 포함하지 않습니다.'},
+  {a:'이내', b:'경과|도과', aw:'이내 (기한 안)', bw:'경과 (기한을 넘김)',
+   tip:'‘이내’는 기한 안, ‘경과’는 기한을 넘긴 것입니다.'},
+  {a:'포함한다|포함된다|포함하여|포함되는|포함', b:'제외한다|제외된다|제외하여|제외되는|제외',
+   aw:'포함한다', bw:'제외한다',
+   tip:'같은 문장에서 ‘포함’과 ‘제외’가 갈리면 결론이 뒤집힙니다.'},
+  {a:'인정된다|인정되지|인정한다|인정할', b:'부인한다|부인된다|부정한다',
+   aw:'인정된다', bw:'부인한다',
+   tip:'‘인정된다’와 ‘부인한다’는 정반대 결론입니다.'},
+  {a:'증가한다|증가하며|증가하고|증가시|상승한다|커진다|높아진다|늘어난다',
+   b:'감소한다|감소하며|감소하고|감소시|하락한다|작아진다|낮아진다|줄어든다',
+   aw:'증가한다', bw:'감소한다',
+   tip:'방향(증가/감소)만 바꿔 놓은 선지가 가장 흔한 함정입니다.'}
+];
+var TRAP_RX = new RegExp(TRAP_PAIRS.map(function(p){ return p.a + '|' + p.b; }).join('|'), 'g');
+/* 이미 만들어진 HTML(해설·hl)에서 태그 밖 글자만 칠한다 — 태그 속성은 건드리지 않는다.
+   긴 해설에서 붉은 칸이 넘치지 않도록 한 글에 cap곳까지만 칠한다. */
+function trapInline(html, cap){
+  if(!html) return '';
+  var left = (cap === undefined) ? 4 : cap;
+  return String(html).split(/(<[^>]*>)/).map(function(seg, i){
+    if(i % 2) return seg;
+    return seg.replace(TRAP_RX, function(m){
+      if(left <= 0) return m;
+      left--;
+      return '<b class="tw">' + m + '</b>';
+    });
+  }).join('');
+}
+function trapFound(text, src, cap){
+  var out = [], seen = {}, m, re = new RegExp(src, 'g');
+  while((m = re.exec(text))){
+    var w = m[0].replace(/\s+/g, ' ');
+    if(!seen[w]){ seen[w] = 1; out.push(w); }
+    if(out.length >= (cap || 2)) break;
+    if(m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
+}
+function trapRows(q){
+  var t = String((q && q.stmt) || ''), rows = [];
+  TRAP_PAIRS.forEach(function(p){
+    var fa = trapFound(t, p.a), fb = trapFound(t, p.b);
+    if(!fa.length && !fb.length) return;
+    var ai = fa.length ? t.search(new RegExp(p.a)) : -1;
+    var bi = fb.length ? t.search(new RegExp(p.b)) : -1;
+    var at = (ai < 0) ? bi : (bi < 0 ? ai : Math.min(ai, bi));
+    rows.push({p:p, a:fa, b:fb, at:at});
+  });
+  rows.sort(function(x, y){ return x.at - y.at; });
+  return rows;
+}
+function trapCardHTML(q){
+  var rows = trapRows(q).slice(0, 3);
+  if(!rows.length) return '';
+  return '<div class="traps"><div class="ttl">⚖️ 함정 대비어</div>' +
+    '<div class="sub">이 지문이 갈린 표현 — 왼쪽은 지문에 나온 말, 오른쪽은 짝이 되는 말입니다.</div>' +
+    rows.map(function(r){
+      var p = r.p, leftIsA = r.a.length > 0;
+      var left = leftIsA ? r.a : r.b;
+      var right = leftIsA ? (r.b.length ? r.b : [p.bw]) : (r.a.length ? r.a : [p.aw]);
+      return '<div class="tp"><div class="wr">' +
+        left.map(function(w){ return '<span class="w">' + esc(w) + '</span>'; }).join('') +
+        '<span class="vs">↔</span>' +
+        right.map(function(w){ return '<span class="w alt">' + esc(w) + '</span>'; }).join('') +
+        '</div><div class="tip">' + esc(p.tip) + '</div></div>';
+    }).join('') + '</div>';
+}
+
 function blindNumOn(){ return !!(S.flags && S.flags.blind); }
 function blindWordOn(){ return !!(S.flags && S.flags.blindw); }
 function blindWhoOn(){ return !!(S.flags && S.flags.blindwho); }
@@ -815,6 +1000,7 @@ function maskRanges(s){
       hits.push({a:m.index, b:m.index + m[0].length, pri:pri, kind:'key'});
       if(m.index === re.lastIndex) re.lastIndex++;
     }
+    hits = dropContained(hits.concat(termHits(text)));   /* v14 — 개념어까지 한 사전에서 */
     if(hits.length > KEY_CAP){
       hits.sort(function(x, y){ return (x.pri - y.pri) || (x.a - y.a); });
       hits = hits.slice(0, KEY_CAP);
@@ -840,15 +1026,17 @@ function maskRanges(s){
   return merged;
 }
 function maskHTML(s, reveal){
-  if(!blindOn()) return esc(s);
-  var text = String(s == null ? '' : s), sp = maskRanges(text), html = '', last = 0;
+  var text = String(s == null ? '' : s);
+  if(!blindOn() && !reveal) return esc(text);
+  var sp = blindOn() ? maskRanges(text) : [], html = '', last = 0;
+  function plain(seg){ return reveal ? trapInline(esc(seg)) : esc(seg); }   /* 답한 뒤에만 대비어 표시 */
   sp.forEach(function(r){
     if(r.a < last) return;                   /* 구간이 겹치면 앞의 것만 남긴다 */
-    html += esc(text.slice(last, r.a)) +
+    html += plain(text.slice(last, r.a)) +
       '<b class="bl' + (r.kind === 'num' ? '' : r.kind === 'who' ? ' who' : ' key') + (reveal ? ' on' : '') + '" data-bl="1">' + esc(text.slice(r.a, r.b)) + '</b>';
     last = r.b;
   });
-  return html + esc(text.slice(last));
+  return html + plain(text.slice(last));
 }
 /* 이 과목(범위)에서 각 모드가 몇 %의 지문에 빈칸을 만드는지 — 활용도 확인용 */
 var COV_CACHE = {};
@@ -863,7 +1051,7 @@ function blindCoverage(){
     c.total++;
     var hn = false, m, re1 = new RegExp(BL_RE.source, 'g');
     while((m = re1.exec(t))){ if(!m[1]){ hn = true; break; } if(m.index === re1.lastIndex) re1.lastIndex++; }
-    var hk = new RegExp(KEY_RX.source).test(t);
+    var hk = new RegExp(KEY_RX.source).test(t) || termHits(t).length > 0;
     var hw = new RegExp(WHO_RX.source).test(t);
     if(hn) c.num++;
     if(hk) c.key++;
@@ -1308,6 +1496,10 @@ function startSession(mode, opts){
     var want = (opts.ids || []).filter(function(id){ return byId.has(id); });
     if(want.length > 10){ note = '틀린 ' + want.length + '지문 중 10지문만 냅니다'; }
     ids = want.slice(0, 10);
+  }else if(mode === 'drill'){
+    var wantD = (opts.ids || []).filter(function(id){ return byId.has(id); });
+    if(wantD.length > 10){ note = '취약 ' + wantD.length + '문항 중 10문항만 냅니다'; }
+    ids = wantD.slice(0, 10);
   }else if(mode === 'book'){
     var poolB = BANK.filter(function(q){ return inScope(q) && S.book[q.id]; });
     var rndB = mulberry32(hashStr('book:' + dateStr + ':' + Object.keys(S.ans).length));
@@ -1401,6 +1593,7 @@ function answer(pick){
     session.times[q.id] = spent;
     S.spd = S.spd || {n:0, ms:0};
     S.spd.n = (S.spd.n || 0) + 1; S.spd.ms = (S.spd.ms || 0) + spent;
+    logAtt(q.id, spent, r.ok);
   }
   /* 연속 정답 */
   if(r.ok){ session.combo = (session.combo || 0) + 1; session.best = Math.max(session.best || 0, session.combo); }
@@ -1415,6 +1608,15 @@ function answer(pick){
   if(r.undo) toast('오답노트에서 해결됨으로 옮겼습니다', '되돌리기', function(){
     if(S.wrong[r.undo]){ S.wrong[r.undo].res = 0; save(); render(); }
   });
+}
+/* ─────────── v14 · 문항별 소요 시간 기록 ───────────
+   문항 하나에 머문 시간을 정답과 함께 짧게 남긴다(최근 600개).
+   → “어느 속도에서 맞히는지”(시간×정답률)와 “느린 문항”(취약 드릴)의 재료가 된다. */
+function logAtt(id, ms, ok){
+  if(!(ms > 500 && ms < 900000)) return;
+  S.att = S.att || [];
+  S.att.push([id, Math.round(ms), ok ? 1 : 0]);
+  if(S.att.length > 600) S.att = S.att.slice(-600);
 }
 function touchStreak(ds){
   var st = S.streak;
@@ -1895,6 +2097,7 @@ function submitExam(){
     var q = byId.get(it.id);
     var r = recordAnswer(q, it.pick);
     it.ok = r.ok; done++; if(r.ok) ok++;
+    logAtt(it.id, it.ms || 0, r.ok);
   });
   exam.ok = ok; exam.done = done;
   S.exdraft = null; save();
@@ -2015,6 +2218,94 @@ function causeTopMap(){
   return m;
 }
 
+/* ─────────── v14 · 취약 드릴 · 시간 × 정답률 ───────────
+   AdaptiBar의 Timing Analysis처럼 “몇 초에 풀 때 맞히는지”를 보고, 틀린 것·모르는 것·
+   오래 붙잡은 것을 한 버튼으로 모아 준다(세트는 10문항까지, 겹치는 문항은 한 번만). */
+function paceRef(){
+  var p = parseInt(S.cfg.pace, 10) || 0;
+  return p || 60;          /* 페이스를 끈 상태면 1차 시험 기준 60초를 기준으로 본다 */
+}
+function timeBuckets(){
+  var defs = [[0, 20, '~20초'], [20, 40, '20~40초'], [40, 60, '40~60초'], [60, 90, '60~90초'], [90, 1e9, '90초~']];
+  var out = defs.map(function(d){ return {lo:d[0], hi:d[1], lb:d[2], n:0, ok:0}; });
+  (S.att || []).forEach(function(a){
+    if(!a || !(a[1] > 0)) return;
+    var q = byId.get(a[0]);
+    if(!q || !inScope(q)) return;
+    var sec = a[1] / 1000;
+    for(var i = 0; i < out.length; i++){
+      if(sec < out[i].hi || i === out.length - 1){ out[i].n++; if(a[2]) out[i].ok++; break; }
+    }
+  });
+  return out;
+}
+function timeCardHTML(){
+  var bs = timeBuckets(), n = 0;
+  bs.forEach(function(b){ n += b.n; });
+  var head = '<div class="card" style="margin-top:12px"><h3>⏱ 시간 × 정답률</h3>';
+  if(n < 12){
+    return head + '<p class="muted tiny">시간 기록이 ' + n + '개입니다. 10문항만 더 풀면 어느 속도에서 정답률이 높은지 보여 드립니다.</p>' +
+      '<p class="muted tiny" style="margin-top:6px">문항 소요는 지문을 띄운 순간부터 O/X를 누를 때까지 재어 둡니다.</p></div>';
+  }
+  var sweet = null;
+  bs.forEach(function(b){ if(b.n >= 3 && (!sweet || pct(b.ok, b.n) > pct(sweet.ok, sweet.n))) sweet = b; });
+  var fast = {n:0, ok:0}, slow = {n:0, ok:0};
+  bs.forEach(function(b){ var t = (b.hi <= 60) ? fast : slow; t.n += b.n; t.ok += b.ok; });
+  var cmp = (fast.n && slow.n)
+    ? '60초 넘긴 문항 <b>' + pct(slow.ok, slow.n) + '%</b> · 60초 이내 <b>' + pct(fast.ok, fast.n) + '%</b>'
+    : '';
+  return head +
+    (sweet ? '<p class="tiny" style="margin-bottom:6px">가장 정답률이 높은 구간 — <b>' + esc(sweet.lb) + '</b> (' + pct(sweet.ok, sweet.n) + '%, ' + sweet.n + '문항)</p>' : '') +
+    bs.map(function(b){
+      var r = b.n ? pct(b.ok, b.n) : 0;
+      return '<div class="tbrow' + (b.n ? '' : ' dim') + '"><span class="lb">' + esc(b.lb) + '</span>' +
+        '<span class="b2"><i style="width:' + (b.n ? Math.max(4, r) : 0) + '%"></i></span>' +
+        '<span class="n">' + (b.n ? r + '% · ' + b.n : '–') + '</span></div>';
+    }).join('') +
+    (cmp ? '<p class="tiny muted" style="margin-top:8px">' + cmp + '</p>' : '') +
+    '</div>';
+}
+function drillInfo(){
+  var pace = paceRef(), map = {}, order = [];
+  function touch(id){
+    if(!map[id]){ map[id] = {id:id, wrong:0, dnk:0, slow:0, ms:0, n:0, last:0}; order.push(id); }
+    return map[id];
+  }
+  wrongList(true).forEach(function(x){ var o = touch(x.id); o.wrong = x.w.w || 1; o.last = x.w.last || 0; });
+  for(var id in S.dnk){
+    var q = byId.get(id);
+    if(q && inScope(q)) touch(id).dnk = 1;
+  }
+  (S.att || []).forEach(function(a){
+    if(!a || !(a[1] > pace * 1000)) return;
+    var q2 = byId.get(a[0]);
+    if(!q2 || !inScope(q2)) return;
+    var o2 = touch(a[0]); o2.slow++; o2.ms += a[1]; o2.n++;
+  });
+  var items = order.map(function(id){ return map[id]; });
+  items.sort(function(x, y){
+    var sx = x.wrong * 100 + x.dnk * 30 + Math.min(9, x.slow) * 5;
+    var sy = y.wrong * 100 + y.dnk * 30 + Math.min(9, y.slow) * 5;
+    return (sy - sx) || (y.wrong - x.wrong) || (y.last - x.last);
+  });
+  var c = {wrong:0, dnk:0, slow:0};
+  items.forEach(function(x){ if(x.wrong) c.wrong++; if(x.dnk) c.dnk++; if(x.slow) c.slow++; });
+  return {items:items.slice(0, 10), total:items.length, wrong:c.wrong, dnk:c.dnk, slow:c.slow, pace:pace};
+}
+function drillCardHTML(){
+  var d = drillInfo();
+  if(!d.total) return '';
+  var bits = [];
+  if(d.wrong) bits.push('오답 ' + d.wrong);
+  if(d.dnk) bits.push('모름 ' + d.dnk);
+  if(d.slow) bits.push(d.pace + '초 초과 ' + d.slow);
+  return '<div class="drillcard"><div class="bd">' +
+    '<div class="t">🎯 취약 드릴 <b>' + d.items.length + '문항</b></div>' +
+    '<div class="d">' + bits.join(' · ') +
+      (d.total > d.items.length ? ' — 한 세트는 10문항까지' : ' — 겹치는 문항은 한 번만') + '</div></div>' +
+    '<button class="btn sm primary" type="button" data-act="start-drill">드릴 시작</button></div>';
+}
+
 function renderQuiz(v, b){
   var s = session;
   if(!s.ids.length){
@@ -2067,9 +2358,9 @@ function renderQuiz(v, b){
 
   if(isAnswered){
     var secs = [];
-    if(q.why) secs.push('<div class="sec"><div class="lbl">핵심 이유</div><div class="txt">' + nl2br(hl(q.why)) + '</div></div>');
+    if(q.why) secs.push('<div class="sec"><div class="lbl">핵심 이유</div><div class="txt">' + trapInline(nl2br(hl(q.why))) + '</div></div>');
     if(q.main) secs.push('<div class="sec"><div class="lbl">근거·이론' + (q.ans ? ' · 공식 정답 ' + esc(q.ans) : '') + '</div><div class="txt">' + nl2br(hl(q.main)) + '</div></div>');
-    if(q.trap) secs.push('<div class="sec trap"><div class="lbl">⛳ 함정 포인트</div><div class="txt">' + nl2br(hl(q.trap)) + '</div></div>');
+    if(q.trap) secs.push('<div class="sec trap"><div class="lbl">⛳ 함정 포인트</div><div class="txt">' + trapInline(nl2br(hl(q.trap))) + '</div></div>');
     var arts = (q.arts || []).filter(function(a){ return a && a.replace(/[^0-9]/g,'').length; });
     if(arts.length) secs.push('<div class="sec"><div class="lbl">관련 조문</div><div class="arts">' +
       arts.map(function(a){ return '<span class="chip">' + esc(a) + '</span>'; }).join('') + '</div></div>');
@@ -2119,7 +2410,7 @@ function renderQuiz(v, b){
         '<span>' + (s.review ? '해설 · 정답은 <b>' + q.answer + '</b>'
           : picked === '?' ? '모르는 지문으로 표시했습니다 · 정답은 <b>' + q.answer + '</b>'
           : (correct ? '정답입니다' : '오답입니다') + ' · 이 지문은 <b>' + q.answer + '</b>' + (correct ? '' : ' (내 답 ' + picked + ')')) +
-        '</span></div>' + ((correct || s.review) ? '' : rcauseHTML(q)) + expHTML +
+        '</span></div>' + trapCardHTML(q) + ((correct || s.review) ? '' : rcauseHTML(q)) + expHTML +
       '<details class="memo"' + (S.memo[q.id] ? ' open' : '') + '><summary>📝 내 메모' + (S.memo[q.id] ? ' · 적어 둠' : '') + '</summary>' +
         '<div class="in"><textarea data-memoid="' + esc(q.id) + '" placeholder="헷갈린 포인트, 헷갈린 이유, 다음에 볼 것…">' + esc(S.memo[q.id] || '') + '</textarea></div></details>' +
       '<div class="row" style="margin-top:10px;gap:8px">' +
@@ -2150,6 +2441,7 @@ function sessionLabel(s){
   if(s.mode === 'focus') return shortName(s.subject || '') + ' · ' + (s.topic || '') + ' 집중';
   if(s.mode === 'round') return shortName(s.subject || '') + ' · ' + (s.year || '') + ' ' + (s.round || '') + ' 기출';
   if(s.mode === 'retry') return '틀린 지문 다시';
+  if(s.mode === 'drill') return '취약 문항 드릴';
   if(s.mode === 'book') return '북마크';
   return '오답 집중';
 }
@@ -2240,6 +2532,7 @@ function renderWrong(v, b){
     '<div class="tabs"><button type="button" class="' + (tab === 'open' ? 'on' : '') + '" data-act="tab" data-t="open">다시 볼 ' + open.length + '</button>' +
       '<button type="button" class="' + (tab === 'dnk' ? 'on' : '') + '" data-act="tab" data-t="dnk">모름 ' + dnkList.length + '</button>' +
       '<button type="button" class="' + (tab === 'closed' ? 'on' : '') + '" data-act="tab" data-t="closed">해결됨 ' + closed.length + '</button></div>' +
+    drillCardHTML() +
     (list.length ? '<div class="list">' + rows + '</div>' :
       '<div class="card center"><p class="muted">' + (tab === 'dnk' ? '「모르겠음」으로 넘긴 지문이 여기에 모입니다.'
         : tab === 'open' ? (isAll() ? '다시 볼 문항이 없습니다. 잘 하고 있어요.' : esc(scopeLabel()) + '에는 다시 볼 문항이 없습니다.')
@@ -2365,6 +2658,8 @@ function renderStats(v, b){
       '<div class="spread tiny muted" style="margin-top:4px"><span>해결된 문항</span><b>' + (all.length - open.length) + '개</b></div>' +
       '<div class="spread tiny muted" style="margin-top:4px"><span>문항 평균 소요</span><b>' +
         ((S.spd && S.spd.n) ? Math.round(S.spd.ms / S.spd.n / 1000) + '초' : '–') + '</b></div></div>' +
+    timeCardHTML() +
+    drillCardHTML() +
     rowsWeak +
     rowsMatrix +
     rowsCause +
@@ -2420,6 +2715,7 @@ function importJSON(file){
       b.book = d.book || {}; b.memo = d.memo || {}; b.dnk = d.dnk || {};
       b.rc = (d.rc && typeof d.rc === 'object') ? d.rc : {};
       b.spd = (d.spd && typeof d.spd === 'object' && d.spd.n) ? d.spd : {n:0, ms:0};
+      b.att = Array.isArray(d.att) ? d.att.slice(-600) : [];
       /* 풀던 세션·답안지도 백업에 담겨 있으므로 함께 되살린다 */
       b.resume = (d.resume && d.resume.ids && d.resume.ids.length) ? d.resume : null;
       b.exdraft = (d.exdraft && d.exdraft.items && d.exdraft.items.length) ? d.exdraft : null;
@@ -2621,6 +2917,10 @@ document.addEventListener('click', function(ev){
     var idsR = String(el.getAttribute('data-ids') || '').split(',').filter(function(x){ return x; });
     if(!idsR.length){ toast('다시 풀 지문이 없습니다'); return; }
     startSession('retry', {ids: idsR});
+  }else if(act === 'start-drill'){
+    var dInfo = drillInfo();
+    if(!dInfo.total){ toast('취약 문항이 아직 없습니다 — 먼저 10문항 풀어 보세요'); return; }
+    startSession('drill', {ids: dInfo.items.map(function(x){ return x.id; })});
   }else if(act === 'start-wrong'){
     var open = wrongList(true);
     if(!open.length){ toast('다시 볼 문항이 없습니다'); return; }
@@ -2761,7 +3061,12 @@ window.__sebeop = {
   blindNumOn: blindNumOn, blindWordOn: blindWordOn, blindWhoOn: blindWhoOn, blindPanel: blindPanelOpen,
   causeByTopic: causeByTopic, causeTopMap: causeTopMap, fmtClock: fmtClock, paceState: paceState,
   setPace: function(v){ S.cfg.pace = parseInt(v, 10) || 0; save(); render(); },
-  rc: function(){ return S.rc; }, spd: function(){ return S.spd; }
+  rc: function(){ return S.rc; }, spd: function(){ return S.spd; },
+  att: function(){ return S.att; }, drill: drillInfo, timeBuckets: timeBuckets,
+  timeCard: timeCardHTML, drillCard: drillCardHTML, paceRef: paceRef,
+  trapRows: trapRows, trapCard: trapCardHTML, trapInline: trapInline, TRAP_PAIRS: TRAP_PAIRS,
+  terms: TERM_WORDS, termHits: termHits, logAtt: logAtt,
+  startDrill: function(){ var d = drillInfo(); if(d.total) startSession('drill', {ids:d.items.map(function(x){ return x.id; })}); }
 };
 })();
 </script>
