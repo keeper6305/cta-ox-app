@@ -10,6 +10,7 @@
 var Q = new URLSearchParams(location.search);
 var STEP = Q.get('s') || 'home';
 var WID = parseInt(Q.get('w') || '390', 10);
+var SCROLL = parseInt(Q.get('y') || '300', 10);
 var f = document.getElementById('f');
 f.width = WID;
 f.height = WID === 430 ? 932 : (WID === 360 ? 780 : 844);
@@ -59,7 +60,7 @@ f.onload = async function(){
   }
   click('#statsbtn'); await wait(160);
   if(STEP === 'timesub'){ click('.tchip[data-s="재정학"]'); await wait(160); }
-  W().scrollTo(0, STEP === 'timesub' || STEP === 'dark' ? 330 : 300); await wait(120);
+  W().scrollTo(0, SCROLL); await wait(140);
 };
 f.src = '../index.html?qa=1&s=' + Date.now();
 </script>
