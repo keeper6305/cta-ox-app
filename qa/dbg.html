@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><title>v15 진단</title>
+<style>body{font:13px/1.45 system-ui;margin:10px} pre{white-space:pre-wrap;word-break:break-all;background:#f4f6fb;padding:10px;border-radius:8px}</style>
+</head><body>
+<pre id="out">준비 중…</pre>
+<iframe id="f" width="390" height="844" style="border:0;position:absolute;left:-9999px"></iframe>
+<script>
+var P = [];
+function say(s){ P.push(s); document.getElementById('out').textContent = P.join('\n'); }
+var f = document.getElementById('f');
+f.onload = async function(){
+  await new Promise(function(r){ setTimeout(r, 400); });
+  var W = f.contentWindow, D = f.contentDocument, api = W.__sebeop;
+  try{ W.localStorage.removeItem('sebeop_ox_v1'); }catch(e){}
+  W.location.reload();
+  await new Promise(function(r){ setTimeout(r, 600); });
+  api = W.__sebeop;
+  var S = api.state;
+  api.subjects.forEach(function(s){
+    var pool = api.bank.filter(function(q){ return q.subject === s; }).slice(0, 12);
+    pool.forEach(function(q, i){ S.att.push([q.id, i < 8 ? 10000 : (i < 10 ? 30000 : 100000), i < 8 ? 1 : 0]); });
+  });
+  api.HOME();
+  document.getElementById('f2stat') && 0;
+  var btn = D.getElementById('statsbtn'); btn.click();
+  await new Promise(function(r){ setTimeout(r, 120); });
+  say('== chips: ' + Array.from(D.querySelectorAll('.tchip')).map(function(x){ return x.textContent.trim(); }).join(' | '));
+  say('== pacebox: ' + JSON.stringify((D.querySelector('.pacebox') || {}).innerText));
+  say('== tsweet: ' + JSON.stringify((D.querySelector('.tsweet') || {}).innerText));
+  say('== tbrow: ' + Array.from(D.querySelectorAll('.tbrow')).map(function(x){ return x.textContent.trim(); }).join(' | '));
+  say('== tsubj rows: ' + Array.from(D.querySelectorAll('.tsrow')).map(function(x){ return x.textContent.trim(); }).join(' | '));
+  // 과목 칩
+  var chip = D.querySelector('.tchip[data-s="재정학"]'); if(chip) chip.click();
+  await new Promise(function(r){ setTimeout(r, 120); });
+  say('== after 재정학 chip on: ' + (D.querySelector('.tchip.on') || {}).textContent);
+  say('== 재정학 pacebox: ' + JSON.stringify((D.querySelector('.pacebox') || {}).innerText));
+  say('== 재정학 tsweet: ' + JSON.stringify((D.querySelector('.tsweet') || {}).innerText));
+  say('== 재정학 표본줄: ' + (D.querySelector('.card .tiny.muted') || {}).innerText);
+  say('== errs: ' + JSON.stringify(W.__errs));
+  // 쪼갠 칸 찾기
+  api.setBlind(false); api.setBlindWho(false); api.setBlindWord(true);
+  var SAFE = ['자본시장','부채비율','비한정','증여세법','취소소송','한계비용','초과부담','이연법인세부채','공정가치모형','부작위위법확인소송','무효등확인소송','조세귀착','균형예산귀착','차별귀착','사용자비용탄력성','한계실효세율','국민기초생활보장'];
+  api.bank.forEach(function(q){
+    var t0 = q.stmt, rs = api.maskRanges(t0);
+    SAFE.forEach(function(w){
+      var p = t0.indexOf(w);
+      while(p >= 0){
+        var e = p + w.length;
+        rs.forEach(function(r){
+          var partial = (r.a >= p && r.a < e && r.b <= e) && !(r.a === p && r.b === e);
+          if(partial) say('SPLIT ' + q.id + ' | ' + w + ' → [' + t0.slice(r.a, r.b) + '] | ' + t0.slice(Math.max(0,p-30), e+20));
+        });
+        p = t0.indexOf(w, p + 1);
+      }
+    });
+  });
+  say('== done');
+};
+f.src = '../index.html?qa=1&d=' + Date.now();
+</script>
+</body></html>
