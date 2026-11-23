@@ -2377,12 +2377,12 @@ function timeCardHTML(){
       '<p class="muted tiny" style="margin-top:6px">문항 소요는 지문을 띄운 순간부터 O/X를 누를 때까지 재어 둡니다.</p></div>';
   }
   var chips = '<div class="tchips" role="group" aria-label="시간 분석 과목">' +
-    '<button type="button" class="tchip' + (sel ? '' : ' on') + '" data-act="tsubj" data-s="" aria-pressed="' + (sel ? 'false' : 'true') + '">전체 ' + nAll + '</button>' +
+    '<button type="button" class="tchip' + (sel ? '' : ' on') + '" data-act="tsubj" data-s="" aria-pressed="' + (sel ? 'false' : 'true') + '">전체</button>' +
     SUBJECTS.map(function(s){
       var r0 = rows.filter(function(x){ return x.s === s; })[0];
       return '<button type="button" class="tchip' + (sel === s ? ' on' : '') + '" data-act="tsubj" data-s="' + esc(s) + '"' +
         ' aria-pressed="' + (sel === s ? 'true' : 'false') + '"' + (r0 ? '' : ' disabled') + '>' +
-        esc(shortName(s)) + (r0 ? ' ' + r0.n : ' –') + '</button>';
+        esc(shortName(s)) + '</button>';
     }).join('') + '</div>';
   var bs = sel ? timeBuckets(sel) : all, n = timeSum(bs);
   var sweet = timeSweet(bs);

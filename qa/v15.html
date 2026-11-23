@@ -896,6 +896,8 @@ async function suite(){
   api().HOME(); await wait(50);
   clickSel('#statsbtn'); await wait(100);
   eq('과목 칩 5개(전체 포함)', qa('.tchip').length, 5);
+  t('과목 칩이 한 줄에', (q('.tchips') || {getBoundingClientRect: function(){ return {height: 999}; }}).getBoundingClientRect().height < 46,
+    Math.round((q('.tchips') || {getBoundingClientRect: function(){ return {height: 999}; }}).getBoundingClientRect().height));
   eq('과목별 sweet spot 행 4개', qa('.tsrow').length, 4);
   t('전체 sweet spot 안내', body().indexOf('가장 정답률이 높은 구간') >= 0, body().slice(0, 200));
   t('페이스 추천 30초', body().indexOf('답안지 페이스 30초') >= 0, body().slice(0, 300));
