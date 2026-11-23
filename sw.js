@@ -1,5 +1,5 @@
 /* 세법 OX 서비스 워커 — 앱 셸 오프라인 캐시 */
-var CACHE = 'sebeop-ox-v15-s2';
+var CACHE = 'sebeop-ox-v15-s3';
 var ASSETS = ['./', './index.html', './bank.js?v=15', './manifest.json',
               './icon-192.png', './icon-512.png', './icon-maskable-512.png',
               './apple-touch-icon.png', './favicon-32.png'];
@@ -30,6 +30,9 @@ self.addEventListener('fetch', function(e){
   if(req.method !== 'GET') return;
   var url = new URL(req.url);
   if(url.origin !== self.location.origin) return;
+  /* 점검 페이지(?qa=1)·qa/ 하위는 서비스 워커를 거치지 않는다 —
+     예전 셸 캐시가 QA 화면을 덮어쓰면 새 빌드가 검증되지 않은 채 통과한다 */
+  if(/[?&]qa=1/.test(req.url) || /\/qa\//.test(url.pathname)) return;
   if(req.mode === 'navigate'){
     /* no-cache = ETag로 재검증. 새 빌드가 올라오면 설치된 앱도 다음 실행에 바로 받는다 */
     e.respondWith(fetch(req, {cache:'no-cache'}).then(function(r){
