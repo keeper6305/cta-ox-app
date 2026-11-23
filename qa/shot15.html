@@ -52,12 +52,13 @@ f.onload = async function(){
   if(STEP === 'drill'){
     api.startDrill(); await wait(120);
     for(var i = 0; i < 10; i++){
-      if(api.view().name === 'done') break;
-      var ss2 = api.session(); if(!ss2) break;
+      if(api.view().name !== 'quiz') break;
+      var ss2 = api.session(); if(!ss2 || ss2.i >= ss2.ids.length) break;
       var q2 = api.bank.filter(function(x){ return x.id === ss2.ids[ss2.i]; })[0];
-      click('.pick.' + (q2.answer === 'O' ? 'o' : 'x')); await wait(110);
-      if(api.view().name === 'done') break;
-      click('#bar button[data-act="next"]'); await wait(130);
+      api.answer(q2.answer === 'O' ? 'O' : 'X');
+      await wait(120);
+      api.next();
+      await wait(140);
     }
     return;
   }
