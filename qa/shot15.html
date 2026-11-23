@@ -26,6 +26,11 @@ f.onload = async function(){
   await wait(420);
   var api = W().__sebeop, S = api.state;
   if(STEP === 'home'){ return; }
+  if(STEP === 'blindq' || STEP === 'blind'){
+    S.flags.blindw = true; api.HOME(); await wait(80);
+    click('button[data-act="start-blind"]'); await wait(220);
+    if(STEP === 'blindq'){ return; }
+  }
   if(STEP === 'blind'){
     S.flags.blindw = true; api.HOME(); await wait(80);
     click('button[data-act="start-blind"]'); await wait(200);
