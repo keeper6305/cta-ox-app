@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세무사 OX v15 — 전수 클릭 QA</title>
+<style>
+  body{margin:0;background:#1b1f2a;color:#e8edf7;font:13px/1.5 system-ui,-apple-system,"Malgun Gothic",sans-serif}
+  h1{font-size:15px;margin:10px 14px 6px;color:#9fb3d1}
+  .sum{margin:0 14px 8px;font-weight:800;font-size:14px}
+  .sum b.ok{color:#34d399} .sum b.ng{color:#f87171}
+  .wrap{display:flex;gap:16px;padding:0 14px 24px;align-items:flex-start}
+  .frame{background:#0d1017;border-radius:12px;padding:6px;flex:none}
+  .frame .cap{font-size:11px;color:#8fa3c0;margin:0 0 5px 3px}
+  iframe{border:0;display:block;background:#fff;border-radius:6px}
+  #log{flex:1;min-width:340px;max-height:78vh;overflow:auto;background:#0d1017;border-radius:12px;padding:10px 12px}
+  .r{display:flex;gap:8px;padding:2px 0;border-bottom:1px solid #1c2433}
+  .r .s{font-weight:900;flex:none;width:38px}
+  .r.pass .s{color:#34d399} .r.fail .s{color:#f87171}
+  .r .n{flex:1}
+  .r .x{color:#fca5a5;font-size:11px;word-break:break-all;max-width:46%}
+  .sec{margin:9px 0 2px;color:#7dd3fc;font-weight:800}
+</style>
+</head>
+<body>
+<h1>세무사 1차 OX v15 · 전수 클릭 QA (360 / 390 / 430)</h1>
+<div class="sum" id="sum">준비 중…</div>
+<div class="wrap">
+  <div class="frame"><p class="cap">360 × 780</p><iframe id="f360" width="360" height="780"></iframe></div>
+  <div class="frame"><p class="cap">390 × 844</p><iframe id="f390" width="390" height="844"></iframe></div>
+  <div class="frame"><p class="cap">430 × 932</p><iframe id="f430" width="430" height="932"></iframe></div>
+  <div id="log"></div>
+</div>
+<script>
+var P = 0, F = 0, LOG = [];
+function log(kind, name, extra){
+  LOG.push({kind:kind, name:name, extra:extra || ''});
+  var box = document.getElementById('log');
+  if(kind === 'sec'){
+    var d = document.createElement('div'); d.className = 'sec'; d.textContent = name; box.appendChild(d); return;
+  }
+  if(kind === 'pass') P++; else F++;
+  var r = document.createElement('div');
+  r.className = 'r ' + kind;
+  r.innerHTML = '<span class="s">' + (kind === 'pass' ? 'PASS' : 'FAIL') + '</span><span class="n"></span>' + (extra ? '<span class="x"></span>' : '');
+  r.querySelector('.n').textContent = name;
+  if(extra) r.querySelector('.x').textContent = String(extra).slice(0, 300);
+  box.appendChild(r);
+}
+function t(name, cond, extra){ log(cond ? 'pass' : 'fail', name, cond ? '' : extra); return !!cond; }
+function eq(name, a, b){ return t(name, a === b, 'got ' + JSON.stringify(a) + ' want ' + JSON.stringify(b)); }
+function summ(){
+  document.getElementById('sum').innerHTML = 'PASS <b class="ok">' + P + '</b> · FAIL <b class="ng">' + F + '</b>';
+  window.__QA = {pass:P, fail:F, logs:LOG};
+}
+function wait(ms){ return new Promise(function(r){ setTimeout(r, ms || 60); }); }
+
+var FID = 'f360';
+function fr(){ return document.getElementById(FID); }
+function W(){ return fr().contentWindow; }
+function D(){ return fr().contentDocument; }
+function q(sel){ return D().querySelector(sel); }
+function qa(sel){ return Array.prototype.slice.call(D().querySelectorAll(sel)); }
+function body(){ return D().body.innerText || ''; }
+function api(){ return W().__sebeop; }
+function click(el){ if(!el) return false; el.click(); return true; }
+function clickSel(sel){ return click(q(sel)); }
+function loadFrame(id, w, h){
+  return new Promise(function(res){
+    var f = document.getElementById(id);
+    f.width = w; f.height = h;
+    var done = false;
+    f.onload = function(){ if(done) return; done = true; setTimeout(res, 340); };
+    f.src = '../index.html?qa=1&h=' + Date.now();
+  });
+}
+function reload(){
+  return new Promise(function(res){
+    var f = fr(), done = false;
+    f.onload = function(){ if(done) return; done = true; setTimeout(res, 360); };
+    f.contentWindow.location.reload();
+  });
+}
+function reset(){
+  try{ W().localStorage.removeItem('sebeop_ox_v1'); }catch(e){}
+  return reload();
+}
+function qOf(id){ return api().bank.filter(function(x){ return x.id === id; })[0]; }
+
+async function run(){
+  FID = 'f360';
+  await loadFrame('f360', 360, 780);
+  await loadFrame('f390', 390, 844);
+  await loadFrame('f430', 430, 932);
+  FID = 'f360';
+  await reset();
+  await suite();
+
+  log('sec', 'K. 390px 뷰포트');
+  FID = 'f390';
+  await reset();
+  t('390 홈 렌더', !!q('.goal'));
+  var cw390 = fr().width;   /* iframe 설계 폭 — 데스크톱 스크롤바 폭에 휘둘리지 않게 */
+  t('390 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw390 + 1);
+  clickSel('#bar button[data-act="daily"]');
+  await wait(80);
+  eq('390 데일리 10문항', api().session().ids.length, 10);
+  eq('390 도트 10개', qa('.dots i').length, 10);
+  t('390 O/X 버튼 보임', !!q('.pick.o'));
+  clickSel('.chip.blindc'); await wait(60);
+  clickSel('.blindbar .bsel[data-m="word"]'); await wait(70);
+  eq('390 고르개 항목 3개', qa('.blindbar .bsel').length, 3);
+  t('390 고르개 높이 정상', D().querySelector('.blindbar').getBoundingClientRect().height < 120,
+    Math.round(D().querySelector('.blindbar').getBoundingClientRect().height));
+  t('390 고르개 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw390 + 1,
+    'scrollW=' + D().documentElement.scrollWidth);
+  clickSel('.chip.blindc'); await wait(50);
+  t('390 콘솔 오류 0건', (W().__errs || []).length === 0, JSON.stringify(W().__errs || []));
+
+  log('sec', 'Y. 430×932 뷰포트');
+  FID = 'f430';
+  await reset();
+  t('430 홈 렌더', !!q('.goal'));
+  var cw430 = fr().width;
+  t('430 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw430 + 1,
+    'scrollW=' + D().documentElement.scrollWidth);
+  t('430 빈칸 전용 카드', !!q('button[data-act="start-blind"]'));
+  clickSel('button[data-act="start-blind"]'); await wait(120);
+  eq('430 빈칸 세트 10문항', api().session().ids.length, 10);
+  t('430 빈칸이 실제로 가려짐', qa('.stmt .bl').length > 0, qa('.stmt .bl').length);
+  t('430 학습 화면 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw430 + 1);
+  clickSel('#statsbtn'); await wait(90);
+  t('430 시간 카드 있음', body().indexOf('시간 × 정답률') >= 0);
+  t('430 통계 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= cw430 + 1,
+    'scrollW=' + D().documentElement.scrollWidth);
+  t('430 콘솔 오류 0건', (W().__errs || []).length === 0, JSON.stringify(W().__errs || []));
+  FID = 'f360';
+  summ();
+}
+
+async function suite(){
+  var S;
+  await wait(420);   /* 스플래시 사라질 시간 */
+
+  log('sec', 'A. 홈 · 오늘 목표 게이지');
+  t('앱이 그려졌다', q('#view').innerHTML.length > 500);
+  t('스플래시가 사라졌다', q('#splash').classList.contains('off'));
+  eq('제목', D().title, '세무사 1차 OX · 전과목');
+  eq('과목 칩 5개', qa('.subjtabs button').length, 5);
+  t('D-day 표시', /D-\d+/.test(body()), body().slice(0, 80));
+  t('오늘 목표 게이지 있음', !!q('.goal .segs'));
+  eq('목표 칸 10개', qa('.goal .segs i').length, 10);
+  eq('처음엔 채워진 칸 0', qa('.goal .segs i.on').length, 0);
+  t('남은 10문항 안내', body().indexOf('남은 10문항') >= 0);
+  t('매일 10문항 고정 문구', body().indexOf('매일 10문항 고정') >= 0);
+  t('약점 카드 있음', !!q('.weak') && !!q('.weak button[data-act="start-weak"]'));
+  eq('퀵 액션 4개', qa('.quick .qbtn').length, 4);
+  t('하단 데일리 버튼', !!q('#bar button[data-act="daily"]'));
+  eq('처음 총 풀이 0', api().totals().n, 0);
+  t('오늘은 아직 시작 전', body().indexOf('오늘은 아직 시작 전') >= 0);
+
+  log('sec', 'B. 데일리 10문항 · 도트 · 즉시저장');
+  clickSel('#bar button[data-act="daily"]');
+  await wait(90);
+  S = api().session();
+  eq('데일리 세트 10문항', S.ids.length, 10);
+  eq('화면 quiz', api().view().name, 'quiz');
+  eq('도트 10개', qa('.dots i').length, 10);
+  eq('현재 도트 1개', qa('.dots i.cur').length, 1);
+  t('첫 문항 1 / 10', body().indexOf('1 / 10') >= 0);
+  t('O/X 버튼', !!q('.pick.o') && !!q('.pick.x'));
+  t('모르겠음 버튼', body().indexOf('모르겠음') >= 0);
+  t('숫자 가리기 칩 기본 OFF', (q('.chip.blindc') || {className:''}).className.indexOf('on') < 0);
+  var q1 = qOf(S.ids[0]);
+  clickSel('.pick.' + (q1.answer === 'O' ? 'x' : 'o'));
+  await wait(70);
+  t('오답 판정', body().indexOf('오답입니다') >= 0);
+  t('오답 원인 태그', !!q('.rcause'));
+  eq('원인 태그 4개', qa('.rcause button').length, 4);
+  eq('도트 빨강 1개', qa('.dots i.ng').length, 1);
+  t('카운터 정답0·오답1', body().indexOf('정답 0 · 오답 1') >= 0);
+  t('해설 핵심 이유', body().indexOf('핵심 이유') >= 0);
+  t('내 메모 접힘', !!q('details.memo'));
+  t('AI에게 묻기', body().indexOf('AI에게 묻기') >= 0);
+  clickSel('.rcause button[data-c="num"]');
+  await wait(60);
+  eq('원인 태그 저장', (api().rc()[S.ids[0]] || {}).c, 'num');
+  t('원인 태그 라벨 갱신', q('.rcause .lb').innerText.indexOf('숫자·기한') >= 0);
+  clickSel('.rcause button[data-c="num"]');
+  await wait(50);
+  t('같은 태그 다시 → 해제', !api().rc()[S.ids[0]]);
+  clickSel('.rcause button[data-c="exc"]');
+  await wait(50);
+  eq('다른 태그로 교체', (api().rc()[S.ids[0]] || {}).c, 'exc');
+
+  clickSel('#bar button[data-act="next"]');
+  await wait(50);
+  var sawCombo = false;
+  var seq = [true, true, false];
+  for(var k = 0; k < 3; k++){
+    var ss = api().session();
+    var qq = qOf(ss.ids[ss.i]);
+    var want = qq.answer;
+    if(!seq[k]) want = (want === 'O' ? 'X' : 'O');
+    clickSel('.pick.' + (want === 'O' ? 'o' : 'x'));
+    await wait(45);
+    if(api().session().combo >= 2 && body().indexOf('연속') >= 0) sawCombo = true;
+    if(k < 2){ clickSel('#bar button[data-act="next"]'); await wait(45); }
+  }
+  t('연속 정답 콤보 표시', sawCombo, 'combo=' + api().session().combo);
+  eq('최고 연속 2', api().session().best, 2);
+  eq('도트 정답 2개', qa('.dots i.ok').length, 2);
+  t('풀던 세션 저장', !!api().resume() && api().resume().ids.length === 10);
+  clickSel('#bar button[data-act="next"]'); await wait(50);
+  clickSel('#homebtn'); await wait(90);
+  eq('헤더 ← 로 홈 복귀', api().view().name, 'home');
+  t('데일리 이어서 버튼', q('#bar button[data-act="daily"]').innerText.indexOf('이어서') >= 0, q('#bar button[data-act="daily"]').innerText);
+  eq('목표 게이지 4칸', qa('.goal .segs i.on').length, 4);
+  clickSel('#bar button[data-act="daily"]'); await wait(70);
+  eq('데일리 이어서 5번째 문항', api().session().i, 4);
+  eq('복원 정답 수 2', api().session().ok, 2);
+  t('복원 도트(정답2·오답2)', qa('.dots i.ok').length === 2 && qa('.dots i.ng').length === 2);
+
+  for(var j = 0; j < 6; j++){
+    var s2 = api().session();
+    var q2 = qOf(s2.ids[s2.i]);
+    clickSel('.pick.' + (q2.answer === 'O' ? 'o' : 'x'));
+    await wait(40);
+    clickSel('#bar button[data-act="next"]');
+    await wait(40);
+  }
+  eq('완료 화면', api().view().name, 'done');
+  t('점수 링', !!q('.score'));
+  t('평균 소요/콤보 메타', body().indexOf('연속 정답') >= 0 || body().indexOf('초/문항') >= 0, body().slice(0, 200));
+  t('틀린 지문만 다시 버튼', !!q('button[data-act="retry"]'));
+  t('틀린 지문 카드', body().indexOf('이번 세션에서 틀린 지문') >= 0);
+  var fbtns = qa('#bar .row .btn');
+  t('하단 버튼 짜부러짐 없음', fbtns.length === 2 && fbtns.every(function(x){ var r = x.getBoundingClientRect(); return r.width > 90 && r.height < 80; }),
+    fbtns.map(function(x){ var r = x.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); }).join(' / '));
+
+  log('sec', 'C. 틀린 지문만 다시');
+  var retryN = q('button[data-act="retry"]').getAttribute('data-ids').split(',').length;
+  eq('다시 풀 문항 = 틀린 수', retryN, 2);
+  clickSel('button[data-act="retry"]'); await wait(80);
+  eq('재도전 2문항', api().session().ids.length, 2);
+  eq('재도전 모드', api().session().mode, 'retry');
+  for(var r2 = 0; r2 < 2; r2++){
+    var s3 = api().session();
+    var q3 = qOf(s3.ids[s3.i]);
+    clickSel('.pick.' + (q3.answer === 'O' ? 'o' : 'x'));
+    await wait(40);
+    clickSel('#bar button[data-act="next"]');
+    await wait(40);
+  }
+  eq('재도전 완료', api().view().name, 'done');
+  t('100% 링', body().indexOf('100%') >= 0);
+  t('재도전 라벨(완료 화면)', body().indexOf('틀린 지문 다시') >= 0, body().slice(0, 120));
+
+  log('sec', 'D. 오답노트 탭 · 해결/되돌리기 · 검색 · 북마크');
+  clickSel('#bar button[data-act="home"]'); await wait(70);
+  clickSel('button[data-act="wrong"]'); await wait(60);
+  eq('오답노트 화면', api().view().name, 'wrong');
+  t('다시 볼 탭', body().indexOf('다시 볼') >= 0);
+  t('모름 탭', body().indexOf('모름') >= 0);
+  t('해결됨 탭', body().indexOf('해결됨') >= 0);
+  eq('해결됨 2건', qa('.tabs button')[2].innerText.replace(/[^0-9]/g, ''), '2');
+  t('다시 볼은 0건 안내', body().indexOf('다시 볼 문항이 없습니다') >= 0, body().slice(0, 140));
+  qa('.tabs button')[2].click(); await wait(60);
+  t('해결됨 목록 2건', qa('.li').length === 2, 'li=' + qa('.li').length);
+  t('해결됨에 원인 태그', body().indexOf('예외·요건') >= 0, body().slice(0, 200));
+  clickSel('.li button[data-act="unresolve"]'); await wait(60);
+  t('다시 풀기 목록으로 되돌림', body().indexOf('해결됨 1') >= 0 || qa('.li').length === 1, body().slice(0, 160));
+  qa('.tabs button')[0].click(); await wait(60);
+  eq('다시 볼 1건', qa('.li').length, 1);
+  t('다시 볼 행에 칩 렌더', qa('.li .chip').length >= 2, 'chips=' + qa('.li .chip').length);
+  var openN = api().wrongList(true).length;
+  eq('오답노트 미해결 수', openN, 1);
+  clickSel('#bar button[data-act="start-wrong"]'); await wait(70);
+  eq('오답 집중 상한 10', api().session().ids.length, Math.min(10, openN));
+  clickSel('#homebtn'); await wait(60);
+
+  clickSel('button[data-act="search"]'); await wait(60);
+  var inp = q('#sq');
+  if(!inp) throw new Error('검색 입력창 없음(화면=' + api().view().name + ')');
+  inp.value = '가산세';
+  var Ev = W().Event;
+  inp.dispatchEvent(new Ev('input', {bubbles:true}));
+  await wait(90);
+  t('검색 결과 있음', qa('#sres .li').length > 0, body().slice(0, 120));
+  t('결과 건수 표시', /건/.test((q('#scount') || {}).textContent || ''));
+  var firstHit = q('#sres .li .q').innerText.slice(0, 12);
+  clickSel('#sres .li button[data-act="solve-one"]'); await wait(80);
+  eq('검색에서 바로 풀기', api().session().ids.length, 1);
+  t('검색한 지문 표시', body().indexOf(firstHit) >= 0);
+  clickSel('button[data-act="bookq"]'); await wait(60);
+  eq('북마크 저장', api().bookmarks().length, 1);
+  clickSel('#homebtn'); await wait(60);
+  clickSel('button[data-act="book"]'); await wait(50);
+  eq('북마크 목록 1건', qa('.li').length, 1);
+  t('북마크 풀기 버튼', !!q('#bar button[data-act="start-book"]'));
+  clickSel('#bar button[data-act="start-book"]'); await wait(70);
+  eq('북마크 세트 = 담긴 수(최대 10)', api().session().ids.length, Math.min(api().bookmarks().length, 10));
+  t('북마크 지문 포함', api().session().ids.indexOf(api().bookmarks()[0]) >= 0);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'E. 기출 회차 → 답안지 일괄 채점');
+  clickSel('button[data-act="rounds"]'); await wait(60);
+  eq('회차 화면', api().view().name, 'rounds');
+  t('회차 행 렌더', qa('.taxrow').length >= 10, 'rows=' + qa('.taxrow').length);
+  t('답안지 버튼 있음', !!q('button[data-act="start-exam"]'));
+  clickSel('button[data-act="start-exam"]'); await wait(80);
+  eq('답안지 화면', api().view().name, 'exam');
+  var examItems = api().exam().items.length;
+  t('답안지 문항 렌더', qa('.xrow').length === examItems, 'rows=' + qa('.xrow').length + ' items=' + examItems);
+  clickSel('.xtgl button[data-v="O"]'); await wait(40);
+  t('O 표시', !!q('.xtgl button.on.o'));
+  clickSel('.xrow .xtgl button[data-v="O"]'); await wait(30);
+  t('다시 누르면 해제', !q('.xtgl button.on'));
+  var xrows = qa('.xrow');
+  xrows[0].querySelector('button[data-v="O"]').click();
+  xrows[1].querySelector('button[data-v="X"]').click();
+  xrows[2].querySelector('button[data-v="O"]').click();
+  await wait(50);
+  t('답안지 중도 저장', !!api().state.exdraft);
+  t('채점 카운터 3 /', q('#xsubmit').innerText.indexOf('3 / ') >= 0, q('#xsubmit').innerText);
+  /* 미응답만 보기 — 40문항 답안지에서 빈칸을 찾아 헤매지 않게 */
+  eq('답안지 보기 버튼 2개', qa('.xfilter button').length, 2);
+  t('미응답 수 표시', q('.xfilter button[data-f="1"]').innerText.indexOf(String(examItems - 3)) >= 0,
+    q('.xfilter button[data-f="1"]').innerText);
+  clickSel('.xfilter button[data-f="1"]'); await wait(70);
+  eq('미응답만 보기 → 보이는 행 = 전체-3', qa('.xrow').filter(function(r){ return W().getComputedStyle(r).display !== 'none'; }).length, examItems - 3);
+  t('답안지 보기 선택 표시', q('.xfilter button[data-f="1"]').className.indexOf('on') >= 0);
+  clickSel('.xfilter button[data-f="0"]'); await wait(70);
+  eq('전체 보기 → 모든 행', qa('.xrow').filter(function(r){ return W().getComputedStyle(r).display !== 'none'; }).length, examItems);
+  W().confirm = function(){ return true; };
+  clickSel('#xsubmit'); await wait(100);
+  eq('채점 결과 화면', api().view().name, 'examresult');
+  t('채점 링', !!q('.score'));
+  t('문항별 O/X', qa('.li.right').length + qa('.li.wrong').length === 3);
+  t('틀린 문항만 다시 버튼', !!q('button[data-act="retry"]'));
+  var eN = q('button[data-act="retry"]').getAttribute('data-ids').split(',').length;
+  t('틀린 수 일치', eN === (3 - api().examResult().ok), 'n=' + eN + ' ok=' + api().examResult().ok);
+  clickSel('button[data-act="retry"]'); await wait(80);
+  eq('답안지→틀린 세트', api().session().ids.length, eN);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'F. 단원 집중 · 약점 집중');
+  clickSel('button[data-act="topics"]'); await wait(60);
+  eq('집중 화면', api().view().name, 'topics');
+  t('단원 행 50+', qa('.taxrow').length >= 50, 'rows=' + qa('.taxrow').length);
+  clickSel('.taxrow button[data-act="start-focus"]'); await wait(80);
+  var fs = api().session();
+  eq('집중 세트 10문항', fs.ids.length, 10);
+  eq('집중 모드', fs.mode, 'focus');
+  var allSame = fs.ids.every(function(id){
+    var b = qOf(id);
+    return b && b.subject === fs.subject && b.topic === fs.topic;
+  });
+  t('선택 단원 지문만', allSame);
+  /* 비데일리 세션의 이어서 카드 */
+  var fq = qOf(api().session().ids[0]);
+  clickSel('.pick.' + (fq.answer === 'O' ? 'o' : 'x')); await wait(50);
+  clickSel('#homebtn'); await wait(80);
+  t('집중 세션 이어서 카드', !!(q('.resume') && q('.resume button[data-act="resume"]')), body().slice(0, 120));
+  t('이어서 카드 라벨(집중)', (q('.resume') || {innerText:''}).innerText.indexOf('집중') >= 0);
+  clickSel('.resume button[data-act="resume"]'); await wait(60);
+  eq('집중 세션 이어서 2번째', api().session().i, 1);
+  clickSel('#homebtn'); await wait(60);
+  api().start('focus', {subject:'회계학개론(말문제)', topic:'유형자산', n:10});
+  await wait(60);
+  var f5 = api().session();
+  eq('지문 5개 단원도 10문항', f5.ids.length, 10);
+  t('보충 안내 문구', !!f5.note && f5.note.indexOf('더 넣었습니다') >= 0, f5.note);
+  api().HOME(); await wait(60);
+  var weak = api().weakness(1)[0];
+  t('약점 후보 계산', !!weak && !!weak.topic, JSON.stringify(weak));
+  clickSel('.weak button[data-act="start-weak"]'); await wait(80);
+  var ws = api().session();
+  eq('약점 집중 10문항', ws.ids.length, 10);
+  eq('약점 과목 일치', ws.subject, weak.subject);
+  eq('약점 단원 일치', ws.topic, weak.topic);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'G. 숫자·기한 가리기');
+  var numQ = api().bank.filter(function(x){ return /\d/.test(x.stmt) && /원|%|일|년|회|개월|시간/.test(x.stmt) && x.stmt.length < 110; })[0];
+  t('숫자 지문 확보', !!numQ, numQ ? numQ.id : 'none');
+  api().setBlind(true); await wait(60);
+  t('가리기 켜짐', api().state.flags.blind === true);
+  api().startRetry([numQ.id]); await wait(80);
+  var bls = qa('.bl');
+  t('지문에 가린 값 표시', bls.length > 0, 'masked=' + bls.length);
+  var bl = bls[0];
+  var colBefore = W().getComputedStyle(bl).color;
+  var txtBefore = bl.innerText;
+  t('가린 값은 투명 처리', /rgba\(0, 0, 0, 0\)/.test(colBefore), colBefore);
+  click(bl); await wait(40);
+  t('탭하면 값이 보인다', bl.classList.contains('on'));
+  t('값이 실제로 보임', !/rgba\(0, 0, 0, 0\)/.test(W().getComputedStyle(bl).color), W().getComputedStyle(bl).color);
+  t('가린 값 안내', body().indexOf('탭하면 숫자·기한이 보입니다') >= 0);
+  t('조문 번호는 가리지 않음', api().blindHTML('행정소송법 §12 위반').indexOf('class="bl"') < 0, api().blindHTML('행정소송법 §12 위반'));
+  t('금액·기한은 가림', api().blindHTML('3년 이내 50%').indexOf('class="bl"') >= 0, api().blindHTML('3년 이내 50%'));
+  clickSel('.chip.blindc'); await wait(60);
+  t('가리기 끄기', api().state.flags.blind === false);
+  eq('끄면 가린 값 0', qa('.bl').length, 0);
+  api().HOME(); await wait(50);
+
+  log('sec', 'H. 통계 · 테마 · 뒤로가기');
+  clickSel('#statsbtn'); await wait(70);
+  eq('통계 화면', api().view().name, 'stats');
+  t('최근 7일', body().indexOf('최근 7일') >= 0);
+  t('약점 TOP 5', body().indexOf('약점 TOP 5') >= 0);
+  t('내 오답 원인', body().indexOf('내 오답 원인') >= 0);
+  t('문항 평균 소요', body().indexOf('문항 평균 소요') >= 0);
+  eq('오답 원인 분포 4행', qa('.causerow').length, 4);
+  t('백업 · 복원', body().indexOf('백업 · 복원') >= 0);
+  t('초기화 버튼', !!q('button[data-act="reset"]'));
+  var errsBefore = (W().__errs || []).length;
+  clickSel('button[data-act="export"]'); await wait(80);
+  eq('백업 내보내기 오류 없음', (W().__errs || []).length, errsBefore);
+  t('내보내기 토스트', (q('#toast') || {}).innerText.indexOf('백업') >= 0, (q('#toast') || {}).innerText);
+  var themes = [];
+  for(var th = 0; th < 3; th++){ clickSel('#themebtn'); await wait(45); themes.push(D().documentElement.getAttribute('data-theme')); }
+  t('테마 3단 전환', themes.indexOf('dark') >= 0 && themes.indexOf('light') >= 0, themes.join(','));
+  clickSel('#themebtn'); await wait(40);
+  t('테마 속성 있음', ['dark','light'].indexOf(D().documentElement.getAttribute('data-theme')) >= 0);
+  clickSel('button[data-act="home"]'); await wait(60);
+  clickSel('#bar button[data-act="daily"]'); await wait(70);
+  eq('뒤로가기 전 quiz', api().view().name, 'quiz');
+  W().history.back(); await wait(160);
+  eq('뒤로가기 1회 → 홈', api().view().name, 'home');
+  W().history.back(); await wait(160);
+  t('홈에서 1회는 종료 안내', (q('#toast') || {}).innerText.indexOf('한 번 더') >= 0, (q('#toast') || {}).innerText);
+  t('앱 살아 있음', q('#view').innerHTML.length > 300);
+
+  log('sec', 'L. 빈칸 훈련 — 예외·요건 핵심어 가리기');
+  api().HOME(); await wait(60);
+  api().startRetry([api().bank[0].id]); await wait(80);
+  t('빈칸 훈련 칩 있음', !!q('.chip.blindc'));
+  t('처음엔 가린 값 0', qa('.bl').length === 0);
+  clickSel('.chip.blindc'); await wait(70);
+  t('칩을 누르면 항목 고르개', !!q('.blindbar'));
+  eq('고르개 항목 3개', qa('.blindbar .bsel').length, 3);
+  t('고르개만 열고 아직 가리지 않음', qa('.bl').length === 0);
+  clickSel('.blindbar .bsel[data-m="word"]'); await wait(80);
+  t('핵심어 모드 켜짐', api().state.flags.blindw === true);
+  t('칩에 체크 표시', q('.chip.blindc').className.indexOf('on') >= 0);
+  t('고른 항목 강조', q('.blindbar .bsel[data-m="word"]').className.indexOf('on') >= 0);
+  t('서술어는 통째로 가린다', api().maskHTML('신고하여야 한다').indexOf('>하여야 한다<') > 0, api().maskHTML('신고하여야 한다'));
+  t('가능/필수의 갈림길', api().maskHTML('거부할 수 있다').indexOf('bl key') > 0, api().maskHTML('거부할 수 있다'));
+  t('범위·경계어 가림', api().maskHTML('3년 이상').indexOf('bl key') > 0);
+  t('포함/제외 가림', api().maskHTML('대상에 포함한다').indexOf('bl key') > 0);
+  t('예외 표지 가림', api().maskHTML('다만, 소액은 제외').indexOf('bl key') > 0);
+  t('용어 속 글자는 건드리지 않는다', api().maskHTML('의제매입세액은 매출세액에서 공제한다').indexOf('bl key') < 0, api().maskHTML('의제매입세액은 매출세액에서 공제한다'));
+  t('초과분은 용어라 남긴다', api().maskHTML('그 초과분에 대한 이자').indexOf('bl key') < 0, api().maskHTML('그 초과분에 대한 이자'));
+  t('조문 번호는 그대로', api().maskHTML('행정소송법 §12 위반').indexOf('class="bl') < 0);
+  var capN = (api().maskHTML('할 수 있다. 하여야 한다. 이상 이하 초과 미만 다만').match(/bl key/g) || []).length;
+  t('한 지문 5개까지만 가린다', capN > 0 && capN <= 5, 'masks=' + capN);
+  t('붙은 핵심어는 한 칸으로', (api().maskHTML('감면대상에 포함되지 아니한다').match(/bl key/g) || []).length === 1,
+    api().maskHTML('감면대상에 포함되지 아니한다'));
+  var kwQ = api().bank.filter(function(x){ return x.stmt.length < 100 && api().maskHTML(x.stmt).indexOf('bl key') > 0; })[0];
+  t('핵심어 있는 짧은 지문 확보', !!kwQ, kwQ ? kwQ.id : 'none');
+  api().startRetry([kwQ.id]); await wait(90);
+  var keys = qa('.bl.key');
+  t('지문에 핵심어가 가려졌다', keys.length > 0, 'keys=' + keys.length);
+  t('가린 핵심어는 투명 처리', /rgba\(0, 0, 0, 0\)/.test(W().getComputedStyle(keys[0]).color), W().getComputedStyle(keys[0]).color);
+  t('핵심어 안내 문구', body().indexOf('탭하면 가린 핵심어가 보입니다') >= 0, body().slice(0, 140));
+  click(keys[0]); await wait(40);
+  t('탭하면 핵심어 공개', keys[0].classList.contains('on'));
+  t('공개된 글자가 보인다', !/rgba\(0, 0, 0, 0\)/.test(W().getComputedStyle(keys[0]).color), W().getComputedStyle(keys[0]).color);
+  clickSel('.pick.' + (kwQ.answer === 'O' ? 'o' : 'x')); await wait(80);
+  t('답하면 가린 값이 그대로 보인다', qa('.bl:not(.on)').length === 0, 'bl=' + qa('.bl').length + ' on=' + qa('.bl.on').length);
+  api().startRetry([kwQ.id]); await wait(70);
+  var plainQ = api().bank.filter(function(x){ return x.stmt.length < 90 && api().maskHTML(x.stmt).indexOf('bl key') < 0; })[0];
+  api().startRetry([plainQ.id]); await wait(80);
+  t('핵심어 없는 지문 안내', body().indexOf('가릴 핵심어가 없습니다') >= 0, body().slice(0, 140));
+  clickSel('.chip.blindc'); await wait(60);
+  t('칩 한 번에 끄기', api().state.flags.blind === false && api().state.flags.blindw === false);
+  eq('끄면 가린 값 0', qa('.bl').length, 0);
+  clickSel('.chip.blindc'); await wait(60);
+  clickSel('.blindbar .bsel[data-m="num"]'); await wait(60);
+  clickSel('.blindbar .bsel[data-m="word"]'); await wait(70);
+  t('둘 다 켜짐', api().state.flags.blind === true && api().state.flags.blindw === true);
+  var bothQ = api().bank.filter(function(x){ var h = api().maskHTML(x.stmt); return h.indexOf('bl key') > 0 && h.indexOf('class="bl"') >= 0; })[0];
+  t('둘 다 있는 지문 확보', !!bothQ, bothQ ? bothQ.id : 'none');
+  api().startRetry([bothQ.id]); await wait(90);
+  t('숫자·핵심어 같이 가림', qa('.bl').length > 0 && qa('.bl.key').length > 0, 'bl=' + qa('.bl').length + ' key=' + qa('.bl.key').length);
+  t('둘 다 안내 문구', body().indexOf('숫자·기한과 핵심어') >= 0);
+  clickSel('.blindbar .bx'); await wait(60);
+  t('접기 버튼으로 고르개 닫힘', !q('.blindbar'));
+  t('접어도 가린 값은 유지', qa('.bl').length > 0);
+  clickSel('.chip.blindc'); await wait(60);
+  t('칩으로 모두 끄기', api().state.flags.blind === false && api().state.flags.blindw === false);
+  eq('모두 끄면 가린 값 0', qa('.bl').length, 0);
+  api().HOME(); await wait(50);
+
+  log('sec', 'M. 오답 원인 × 단원 교차 분석');
+  var bA = api().bank[10];
+  var bB = api().bank.filter(function(x){ return x.topic !== bA.topic && x.subject === bA.subject; })[0];
+  async function wrongTag(qq, cause){
+    api().HOME(); await wait(40);
+    api().startRetry([qq.id]); await wait(70);
+    clickSel('.pick.' + (qq.answer === 'O' ? 'x' : 'o')); await wait(60);
+    clickSel('.rcause button[data-c="' + cause + '"]'); await wait(50);
+  }
+  await wrongTag(bA, 'num');
+  await wrongTag(bB, 'exc');
+  api().HOME(); await wait(40);
+  clickSel('#statsbtn'); await wait(90);
+  t('교차 분석 카드 있음', body().indexOf('오답 원인 × 단원') >= 0, body().slice(0, 200));
+  t('통계에 NaN 없음', body().indexOf('NaN') < 0, body().slice(0, 200));
+  var ctRows = api().causeByTopic();
+  t('원인 태그 집계', ctRows.length >= 1, JSON.stringify(ctRows.slice(0, 2)));
+  eq('단원 행 수(최대 6)', qa('.cmatrix .mrow').length, Math.min(ctRows.length, 6));
+  t('가장 많이 걸리는 곳 안내', !!q('p.insight') && /가장 많이 걸리는 곳/.test(body()));
+  eq('행마다 4칸', qa('.cmatrix .c').length, qa('.cmatrix .cells').length * 4);
+  var hitCells = qa('.cmatrix .c.hit');
+  var expHits = 0;
+  ctRows.forEach(function(r){ ['num','who','exc','con'].forEach(function(c){ if(r.counts[c]) expHits++; }); });
+  eq('태그 있는 칸만 누를 수 있다', hitCells.length, expHits);
+  t('약점 TOP 5에 주된 원인', /(숫자·기한|주체·권한|예외·요건|개념혼동) \d+%/.test(body()), body().slice(0, 300));
+  var firstTopic = ctRows[0].topic;
+  hitCells[0].click(); await wait(90);
+  eq('칸을 누르면 그 단원 10문항', api().session().ids.length, 10);
+  eq('칸의 단원으로 들어감', api().session().topic, firstTopic);
+  api().HOME(); await wait(50);
+
+  log('sec', 'N. 답안지 실전 페이스 타이머');
+  clickSel('button[data-act="rounds"]'); await wait(70);
+  clickSel('button[data-act="start-exam"]'); await wait(100);
+  eq('페이스 기본은 끄기', api().state.cfg.pace, 0);
+  t('답안지에 NaN 없음', body().indexOf('NaN') < 0, body().slice(0, 120));
+  eq('페이스 선택 3개', qa('.pacesel button').length, 3);
+  t('끄면 시간 표시 없음', !q('#pacebar'));
+  clickSel('.pacesel button[data-p="60"]'); await wait(90);
+  eq('60초 페이스 선택', api().state.cfg.pace, 60);
+  t('페이스 바 생김', !!q('#pacebar'));
+  var pv1 = q('#pacebar .pv').innerText;
+  await wait(1300);
+  var pv2 = q('#pacebar .pv').innerText;
+  t('경과 시간이 흐른다', pv1 !== pv2, pv1 + ' → ' + pv2);
+  t('권장 페이스 표시', /권장 \d+:\d\d/.test(q('#pacebar').innerText), q('#pacebar').innerText);
+  t('남은 문항·예상 시간', /남은 \d+문항 ≈ \d+:\d\d/.test(q('#pacebar').innerText), q('#pacebar').innerText);
+  t('페이스 상태 색(여유/느림)', /\bpacebar\b.*\b(ok|over)\b/.test(q('#pacebar').className), q('#pacebar').className);
+  clickSel('.xrow button[data-v="O"]'); await wait(70);
+  t('답한 수만큼 권장 시간 갱신', /권장 \d+:\d\d \(1문항\)/.test(q('#pacebar').innerText), q('#pacebar').innerText);
+  var at0 = api().exam().at;
+  var ovr = Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= D().documentElement.clientWidth + 1;
+  t('페이스 바 있어도 가로 넘침 없음', ovr, 'scrollW=' + D().documentElement.scrollWidth);
+  clickSel('#homebtn'); await wait(80);
+  t('답안지 이어서 카드', body().indexOf('답안지 이어서') >= 0, body().slice(0, 160));
+  clickSel('button[data-act="resume-exam"]'); await wait(90);
+  eq('이어서도 시작 시각 유지', api().exam().at, at0);
+  t('이어서도 페이스 유지', !!q('#pacebar'));
+  W().confirm = function(){ return true; };
+  clickSel('#xsubmit'); await wait(120);
+  eq('채점 결과 화면', api().view().name, 'examresult');
+  t('결과에 걸린 시간', body().indexOf('⏱') >= 0 && /시작부터 \d+:\d\d/.test(body()), body().slice(0, 200));
+  clickSel('button[data-act="home"]'); await wait(60);
+  clickSel('button[data-act="rounds"]'); await wait(60);
+  clickSel('button[data-act="start-exam"]'); await wait(80);
+  clickSel('.pacesel button[data-p="0"]'); await wait(70);
+  t('끄면 페이스 바 사라짐', !q('#pacebar'));
+  eq('페이스 끄기 저장', api().state.cfg.pace, 0);
+  clickSel('#homebtn'); await wait(60);
+
+  log('sec', 'O. 답안지 문항별 시간·초과 알림');
+  clickSel('button[data-act="rounds"]'); await wait(60);
+  clickSel('button[data-act="start-exam"]'); await wait(80);
+  clickSel('.pacesel button[data-p="60"]'); await wait(90);
+  t('페이스 바에 현재 문항 시간', /1번 0:0\d \/ 60초/.test(q('#pacebar').innerText), q('#pacebar').innerText);
+  eq('페이스 상태에 문항 시간', typeof api().paceState().lap, 'number');
+  clickSel('.xrow .xtgl button[data-v="O"]'); await wait(80);
+  var msEl = q('.xrow .xms');
+  t('답한 문항 옆에 걸린 시간', !!msEl && /^\d+:\d\d$/.test(msEl.innerText), msEl ? msEl.innerText : 'none');
+  t('문항 시간이 기록됨', (api().exam().items[0].ms || 0) > 0, api().exam().items[0].ms);
+  /* 목표 시간을 넘긴 상황을 만들어 1회 알림 확인 */
+  api().exam().lapAt = Date.now() - 61000;
+  await wait(1250);
+  t('60초 초과 → 1회 토스트', (q('#toast') || {}).innerText.indexOf('페이스를 넘겼어요') >= 0, (q('#toast') || {}).innerText);
+  t('토스트가 하단 버튼을 가리지 않는다', (function(){
+    var tr = q('#toast').getBoundingClientRect(), br = q('#bar').getBoundingClientRect();
+    return tr.bottom <= br.top + 2;
+  })(), (function(){ var tr = q('#toast').getBoundingClientRect(), br = q('#bar').getBoundingClientRect(); return 'toast.bottom=' + Math.round(tr.bottom) + ' bar.top=' + Math.round(br.top); })());
+  eq('초과 알림 표시 남김', api().exam().warnedAt, 1);
+  t('초과 문항 색 강조', q('#pacebar .pc').className.indexOf('hot') >= 0, q('#pacebar .pc').className);
+  t('페이스 바 초과 표시', q('#pacebar').className.indexOf('lapover') >= 0, q('#pacebar').className);
+  q('#toast').textContent = '';
+  await wait(1300);
+  t('같은 문항에 또 알리지 않음', q('#toast').innerText === '', q('#toast').innerText);
+  /* 답안지를 나갔다 와도 문항별 시간이 남아야 한다 */
+  clickSel('#homebtn'); await wait(100);
+  clickSel('button[data-act="resume-exam"]'); await wait(110);
+  t('이어서도 문항 시간 유지', (api().exam().items[0].ms || 0) > 0, api().exam().items[0].ms);
+  t('이어서도 그 시간이 화면에', /^\d+:\d\d$/.test((q('.xrow .xms') || {}).innerText || ''), (q('.xrow .xms') || {}).innerText);
+  W().confirm = function(){ return true; };
+  clickSel('#xsubmit'); await wait(150);
+  eq('채점 결과', api().view().name, 'examresult');
+  t('어디서 시간을 썼나 카드', body().indexOf('어디서 시간을 썼나') >= 0, body().slice(0, 300));
+  t('평균·목표 시간 안내', /문항당 평균 \d+:\d\d/.test(body()) && /(초 넘긴 문항 \d+개|목표 시간 안에 들어왔어요)/.test(body()), body().slice(0, 300));
+  eq('느린 문항 행 수', qa('.slowrow').length, 1);
+  t('결과 하단 버튼이 한 줄', (function(){
+    var b = q('#bar button[data-act="wrong"]'); if(!b) return false;
+    var r = b.getBoundingClientRect();
+    return r.height < 62 && b.scrollWidth <= b.clientWidth + 1;
+  })(), (function(){ var b = q('#bar button[data-act="wrong"]'); if(!b) return 'none'; var r = b.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height) + ' sw=' + b.scrollWidth + ' cw=' + b.clientWidth; })());
+  clickSel('button[data-act="home"]'); await wait(70);
+
+  log('sec', 'P. 주체·권한 빈칸 훈련');
+  api().startRetry([api().bank[0].id]); await wait(80);
+  clickSel('.chip.blindc'); await wait(70);
+  eq('모드 3개', qa('.blindbar .bsel').length, 3);
+  t('커버리지 줄 있음', /빈칸 대상/.test((q('.blindbar .bcov') || {}).innerText || ''), (q('.blindbar .bcov') || {}).innerText);
+  t('커버리지 % 표시', /숫자 \d+% · 핵심어 \d+% · 주체 \d+% · 합계 \d+%/.test((q('.blindbar .bcov') || {}).innerText || ''), (q('.blindbar .bcov') || {}).innerText);
+  t('360에서 고르개 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= 361,
+    'scrollW=' + D().documentElement.scrollWidth);
+  t('360 고르개 버튼 3개가 한 줄', (function(){
+    var bs = qa('.blindbar .brow .bsel');
+    return bs.length === 3 && bs.every(function(b){ return b.getBoundingClientRect().width > 44; });
+  })(), qa('.blindbar .brow .bsel').map(function(b){ return Math.round(b.getBoundingClientRect().width); }).join('/'));
+  t('360 고르개 높이 100px 이하', (q('.blindbar').getBoundingClientRect().height <= 100),
+    Math.round(q('.blindbar').getBoundingClientRect().height));
+  clickSel('.blindbar .bsel[data-m="who"]'); await wait(90);
+  t('주체 모드 켜짐', api().state.flags.blindwho === true);
+  t('주체 안내 문구', body().indexOf('주체·권한이 보입니다') >= 0, body().slice(0, 200));
+  var mh = api().maskHTML('국세청장은 과세처분을 할 수 있다');
+  t('국세청장을 가린다', mh.indexOf('class="bl who"') > 0 && mh.indexOf('>국세청장<') > 0, mh);
+  t('관할 세무서장은 통째로', api().maskHTML('관할 세무서장이 결정한다').indexOf('>관할 세무서장<') > 0, api().maskHTML('관할 세무서장이 결정한다'));
+  t('지방국세청장을 쪼개지 않는다', api().maskHTML('지방국세청장은').indexOf('>지방국세청장<') > 0, api().maskHTML('지방국세청장은'));
+  t('피고도 주체로 가린다', api().maskHTML('피고는 처분청이다').indexOf('class="bl who"') > 0, api().maskHTML('피고는 처분청이다'));
+  var rep = api().maskHTML('국세청장은 고시하고, 국세청장이 정한다');
+  eq('같은 주체는 첫 등장만', (rep.match(/bl who/g) || []).length, 1);
+  var many = api().maskHTML('국세청장, 기획재정부장관, 처분청, 법원이 모두 관계한다');
+  t('한 지문 주체 3개까지만', (many.match(/bl who/g) || []).length <= 3, (many.match(/bl who/g) || []).length);
+  var cov = api().blindCoverage();
+  eq('커버리지 총 지문 수', cov.total, api().bank.length);  t('핵심어 커버리지 v12(822)보다 늘었다', cov.key > 822, 'key=' + cov.key);
+  t('주체 커버리지 187보다 늘었다', cov.who > 187, 'who=' + cov.who);
+  t('합계는 핵심어 이상', cov.any >= cov.key, JSON.stringify(cov));
+  clickSel('.blindbar .bsel[data-m="num"]'); await wait(70);
+  clickSel('.blindbar .bsel[data-m="word"]'); await wait(80);
+  var both3 = api().maskHTML('국세청장은 3년 이내에 처분할 수 있다');
+  t('숫자·핵심어·주체가 한 지문에', both3.indexOf('bl who') > 0 && both3.indexOf('bl key') > 0 && both3.indexOf('class="bl"') > 0, both3);
+  t('주체 가린 칸은 색이 다르다', (function(){ var e = q('.bl.who'); return !!e && W().getComputedStyle(e).boxShadow !== 'none'; })(), 'no .bl.who');
+  t('발생일부터의 \'일부\'는 가리지 않는다', api().maskHTML('체납 발생일부터 1년').indexOf('bl key') < 0, api().maskHTML('체납 발생일부터 1년'));
+  var whoQ = api().bank.filter(function(x){ return x.stmt.length < 110 && api().maskHTML(x.stmt).indexOf('bl who') > 0; })[0];
+  t('주체 있는 지문 확보', !!whoQ, whoQ ? whoQ.id : 'none');
+  api().startRetry([whoQ.id]); await wait(90);
+  t('지문에 주체가 가려졌다', qa('.bl.who').length > 0, 'who=' + qa('.bl.who').length);
+  t('가린 주체는 투명 처리', /rgba\(0, 0, 0, 0\)/.test(W().getComputedStyle(qa('.bl.who')[0]).color), W().getComputedStyle(qa('.bl.who')[0]).color);
+  click(qa('.bl.who')[0]); await wait(40);
+  t('탭하면 주체 공개', qa('.bl.who')[0].classList.contains('on'));
+  clickSel('.chip.blindc'); await wait(70);
+  t('칩 한 번에 모두 끄기', api().state.flags.blind === false && api().state.flags.blindw === false && api().state.flags.blindwho === false);
+  eq('끄면 가린 값 0', qa('.bl').length, 0);
+  api().HOME(); await wait(50);
+
+  log('sec', 'Q. v14 개념어 사전 — 재정학·회계·행소법 빈칸');
+  api().setScope('전체'); await wait(80);
+  api().setBlind(false); api().setBlindWho(false); api().setBlindWord(true); await wait(60);
+  t('개념어 사전 250개 이상', api().terms.length >= 250, api().terms.length);
+  t('공정가치를 가린다', api().maskHTML('공정가치는 시장참여자가 합의한 가격').indexOf('bl key') > 0, api().maskHTML('공정가치는 시장참여자가 합의한 가격'));
+  t('조사가 붙은 개념어도 가린다', api().maskHTML('수요의 가격탄력성은 크다').indexOf('>가격탄력성<') > 0, api().maskHTML('수요의 가격탄력성은 크다'));
+  t('자본시장은 쪼개지 않는다', api().maskHTML('자본시장법상 공시').indexOf('>자본<') < 0, api().maskHTML('자본시장법상 공시'));
+  t('부채비율은 통째로 한 칸', (function(){ var h = api().maskHTML('부채비율이 높다'); return h.indexOf('>부채비율<') > 0 && h.indexOf('>부채<') < 0; })(), api().maskHTML('부채비율이 높다'));
+  t('초과부담은 한 칸', (api().maskHTML('초과부담이 생긴다').match(/bl key/g) || []).length === 1, api().maskHTML('초과부담이 생긴다'));
+  t('원고적격·처분성을 가린다', api().maskHTML('원고적격과 처분성이 문제된다').indexOf('bl key') > 0, api().maskHTML('원고적격과 처분성이 문제된다'));
+  t('비한정·조세 같은 낱말은 건드리지 않는다', api().maskHTML('무형자산은 비한정 내용연수를 가진다').indexOf('>한정<') < 0, api().maskHTML('무형자산은 비한정 내용연수를 가진다'));
+  var covQ = api().blindCoverage();
+  t('핵심어 커버리지 v13(998)보다 크게 늘었다', covQ.key > 1400, 'key=' + covQ.key);
+  t('합계 커버리지 v13(1303)보다 늘었다', covQ.any > 1650, 'any=' + covQ.any);
+  var subCov = {};
+  ['재정학', '회계학개론(말문제)', '행정소송법', '세법학개론'].forEach(function(sn){
+    var qs = api().bank.filter(function(x){ return x.subject === sn; });
+    var k = qs.filter(function(x){ return api().maskRanges(x.stmt).length > 0; }).length;
+    subCov[sn] = Math.round(k * 100 / qs.length);
+  });
+  t('재정학 빈칸 커버리지 50% 이상', subCov['재정학'] >= 50, subCov['재정학'] + '%');
+  t('회계 빈칸 커버리지 60% 이상', subCov['회계학개론(말문제)'] >= 60, subCov['회계학개론(말문제)'] + '%');
+  t('행소법 빈칸 커버리지 50% 이상', subCov['행정소송법'] >= 50, subCov['행정소송법'] + '%');
+  t('전과목 고른 커버리지(최소 50%)', Math.min(subCov['재정학'], subCov['회계학개론(말문제)'], subCov['행정소송법'], subCov['세법학개론']) >= 50, JSON.stringify(subCov));
+  t('한 지문 5칸 상한 유지', api().bank.slice(0, 600).every(function(x){ return api().maskRanges(x.stmt).length <= 5; }));
+  t('개념어는 앞 글자와 붙어 쪼개지지 않는다', api().bank.slice(0, 600).every(function(x){
+    return api().termHits(x.stmt).every(function(r){
+      var prev = r.a > 0 ? x.stmt.charAt(r.a - 1) : '';
+      return !/[가-힣]/.test(prev);
+    });
+  }));
+  var jaeQ = api().bank.filter(function(x){ return x.subject === '재정학' && api().maskRanges(x.stmt).length > 0; })[0];
+  api().startRetry([jaeQ.id]); await wait(90);
+  t('재정학 지문에 개념어가 가려졌다', qa('.bl.key').length > 0, 'keys=' + qa('.bl.key').length);
+  t('개념어는 투명 처리', /rgba\(0, 0, 0, 0\)/.test(W().getComputedStyle(qa('.bl.key')[0]).color), W().getComputedStyle(qa('.bl.key')[0]).color);
+  click(qa('.bl.key')[0]); await wait(40);
+  t('탭하면 개념어 공개', qa('.bl.key')[0].classList.contains('on'));
+  t('360 빈칸 화면 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= 361, 'scrollW=' + D().documentElement.scrollWidth);
+  api().HOME(); await wait(50);
+
+  log('sec', 'R. v14 함정 대비어 — 답한 뒤에만');
+  api().setBlindWord(false); await wait(40);
+  var card1 = api().trapCard({stmt: '법인은 정관이 정한 바에 따라 이익을 배당하여야 한다'});
+  t('필수 표현에 재량 짝을 보여 준다', card1.indexOf('하여야 한다') > 0 && card1.indexOf('할 수 있다') > 0, card1.slice(0, 160));
+  t('재량 표현에 필수 짝을 보여 준다', (function(){ var h = api().trapCard({stmt: '처분청은 직권으로 취소할 수 있다'}); return h.indexOf('처분청') < 0 && h.indexOf('할 수 있다') > 0 && h.indexOf('하여야 한다') > 0; })(), api().trapCard({stmt: '처분청은 직권으로 취소할 수 있다'}).slice(0, 160));
+  t('이상/초과를 짝으로 보여 준다', (function(){ var h = api().trapCard({stmt: '3년 이상의 기간이 지나야 한다'}); return h.indexOf('이상') > 0 && h.indexOf('초과') > 0; })(), api().trapCard({stmt: '3년 이상의 기간이 지나야 한다'}).slice(0, 160));
+  t('이내/경과를 짝으로 보여 준다', (function(){ var h = api().trapCard({stmt: '90일 이내에 신청하여야 한다'}); return h.indexOf('이내') > 0 && h.indexOf('경과') > 0; })(), api().trapCard({stmt: '90일 이내에 신청하여야 한다'}).slice(0, 160));
+  t('포함/제외를 짝으로 보여 준다', (function(){ var h = api().trapCard({stmt: '감면대상에 포함한다'}); return h.indexOf('포함한다') > 0 && h.indexOf('제외한다') > 0; })(), api().trapCard({stmt: '감면대상에 포함한다'}).slice(0, 160));
+  t('대비어 없는 지문에는 카드가 없다', api().trapCard({stmt: '국세청장은 고시한다'}) === '');
+  var manyRows = api().trapRows({stmt: '하여야 한다 이상 이내 포함한다 인정된다 증가한다 할 수 있다'});
+  t('대비어 쌍 최대 3줄만 보여 준다', (api().trapCard({stmt: '하여야 한다 이상 이내 포함한다 인정된다 증가한다'}).match(/class="tp"/g) || []).length === 3, manyRows.length);
+  var trapQ2 = api().bank.filter(function(x){ return /하여야 한다/.test(x.stmt) && x.stmt.length < 110 && api().trapRows(x).length; })[0];
+  t('대비어 지문 확보', !!trapQ2, trapQ2 ? trapQ2.id : 'none');
+  api().startRetry([trapQ2.id]); await wait(90);
+  t('답하기 전 대비어 카드 없음', !q('.traps'));
+  t('답하기 전 대비어 표시 없음', qa('.tw').length === 0, qa('.tw').length);
+  clickSel('.pick.' + (trapQ2.answer === 'O' ? 'o' : 'x')); await wait(90);
+  t('답한 뒤 대비어 카드', !!q('.traps'));
+  t('답한 뒤 지문에 대비어 표시', qa('.stmt .tw').length > 0, qa('.stmt .tw').length);
+  t('해설 속 대비어도 같은 방식으로 칠한다', api().trapInline('<b class="hl">§56</b> 이상의 경우').indexOf('class="tw"') > 0, api().trapInline('<b class="hl">§56</b> 이상의 경우'));
+  t('해설 하이라이트 태그는 건드리지 않는다', api().trapInline('<b class="hl">§56</b>').indexOf('class="hl"') > 0);
+  var expQ = api().bank.filter(function(x){ return /할 수 있다|하여야 한다/.test(String(x.why || '')) && api().trapRows(x).length; })[0];
+  t('해설에 대비어가 있는 지문 확보', !!expQ, expQ ? expQ.id : 'none');
+  api().startRetry([expQ.id]); await wait(90);
+  clickSel('.pick.' + (expQ.answer === 'O' ? 'o' : 'x')); await wait(90);
+  t('해설에도 대비어가 칠해진다', qa('.exp .tw').length > 0, qa('.exp .tw').length);
+  t('대비어 칩에 지문의 말이 들어 있다', q('.traps .w') && q('.traps .w').innerText.length > 1, q('.traps .w') ? q('.traps .w').innerText : 'none');
+  t('대비어 카드에 짝 안내', !!q('.traps .w.alt'));
+  t('대비어 카드 높이 정상', q('.traps').getBoundingClientRect().height < 260, Math.round(q('.traps').getBoundingClientRect().height));
+  t('360 대비어 화면 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= 361, 'scrollW=' + D().documentElement.scrollWidth);
+  api().HOME(); await wait(50);
+
+  log('sec', 'S. v14 취약 드릴 · 시간 × 정답률');
+  var S0 = api().state;
+  var attN0 = (S0.att || []).length;
+  var dq1 = api().bank.filter(function(x){ return x.stmt.length < 120; })[0];
+  api().startRetry([dq1.id]); await wait(760);
+  clickSel('.pick.' + (dq1.answer === 'O' ? 'x' : 'o')); await wait(90);
+  var att1 = api().state.att || [];
+  t('문항 소요가 기록된다', att1.length === attN0 + 1, att1.length + ' vs ' + attN0);
+  var lastA = att1[att1.length - 1] || [];
+  t('기록에 문항·시간·정답이 들어 있다', lastA[0] === dq1.id && lastA[1] >= 700 && lastA[2] === 0, JSON.stringify(lastA));
+  api().state.att.push([dq1.id, 95000, 0]);   /* 60초 초과 상황을 만들어 드릴 반영 확인 */
+  t('오래 걸린 문항은 드릴에 들어간다', api().drill().items.some(function(x){ return x.id === dq1.id && x.slow > 0; }), JSON.stringify(api().drill().items.slice(0, 3)));
+  var bkAll = api().timeBuckets();
+  eq('시간 구간 5개', bkAll.length, 5);
+  eq('구간 합 = 기록 수', bkAll.reduce(function(a, b){ return a + b.n; }, 0), att1.length);
+  api().HOME(); await wait(40);
+  clickSel('#statsbtn'); await wait(80);
+  t('시간 × 정답률 카드 있음', body().indexOf('시간 × 정답률') >= 0);
+  var attKeep = S0.att;
+  S0.att = []; api().HOME(); await wait(40); clickSel('#statsbtn'); await wait(80);
+  t('기록이 없으면 안내 문구', body().indexOf('시간 기록이 아직 없습니다') >= 0, body().slice(0, 160));
+  var seedIds = api().bank.slice(200, 220).map(function(x){ return x.id; });
+  S0.att = seedIds.map(function(id, i){ return [id, (10 + i * 6) * 1000, i % 2]; });
+  api().HOME(); await wait(40); clickSel('#statsbtn'); await wait(90);
+  eq('시간 구간 5행', qa('.tbrow').length, 5);
+  t('정답률 높은 구간 안내', /가장 정답률이 높은 구간/.test(body()), body().slice(0, 200));
+  t('60초 기준 비교 문장', /60초 넘긴 문항 \d+% · 60초 이내 \d+%/.test(body()), body().slice(0, 300));
+  t('통계 화면에 NaN 없음', body().indexOf('NaN') < 0, body().slice(0, 200));
+  var dAll = api().drill();
+  t('드릴 항목은 10문항 이하', dAll.items.length > 0 && dAll.items.length <= 10, dAll.items.length);
+  t('드릴에 느린 문항이 포함', dAll.items.some(function(x){ return x.slow > 0; }), JSON.stringify(dAll.items.slice(0, 3)));
+  var seenD = {}, dupD = false;
+  dAll.items.forEach(function(x){ if(seenD[x.id]) dupD = true; seenD[x.id] = 1; });
+  t('드릴에 중복 문항 없음', !dupD);
+  t('통계에 드릴 카드', !!q('.drillcard button[data-act="start-drill"]'));
+  t('드릴 카드에 구성 표시', /(오답|모름|초과)/.test((q('.drillcard .d') || {innerText: ''}).innerText), (q('.drillcard .d') || {innerText: ''}).innerText);
+  clickSel('.drillcard button[data-act="start-drill"]'); await wait(90);
+  eq('드릴 세션 시작', api().session().mode, 'drill');
+  t('드릴 세트 10문항 이하', api().session().ids.length <= 10 && api().session().ids.length > 0, api().session().ids.length);
+  t('드릴 문항은 취약 목록에서', api().session().ids.every(function(id){ return dAll.items.some(function(x){ return x.id === id; }); }));
+  api().HOME(); await wait(50);
+  clickSel('button[data-act="wrong"]'); await wait(80);
+  t('오답 화면에 드릴 카드', !!q('.drillcard button[data-act="start-drill"]'));
+  t('오답 화면 NaN 없음', body().indexOf('NaN') < 0, body().slice(0, 160));
+  api().HOME(); await wait(40);
+  /* 기록이 하나도 없을 때 — 카드가 사라지고 안내만 남는지 */
+  var snap = {};
+  Object.keys(S0).forEach(function(k){ snap[k] = S0[k]; });
+  S0.wrong = {}; S0.dnk = {}; S0.att = [];
+  api().HOME(); await wait(40); clickSel('#statsbtn'); await wait(80);
+  t('취약 문항이 없으면 드릴 카드 숨김', !q('.drillcard'));
+  Object.keys(snap).forEach(function(k){ S0[k] = snap[k]; });
+  api().HOME(); await wait(40);
+
+  log('sec', 'T. v14 저장소 호환 — 예전 기록 그대로');
+  var _raw = JSON.parse(W().localStorage.getItem('sebeop_ox_v1'));
+  delete _raw.att;
+  W().localStorage.setItem('sebeop_ox_v1', JSON.stringify(_raw));
+  await reload();
+  t('예전 저장소에도 att 배열이 생긴다', Array.isArray(api().state.att), typeof api().state.att);
+  t('기존 기록 유지', api().totals().n > 0, api().totals().n);
+  t('기존 키 그대로', Object.keys(api().state).indexOf('ans') >= 0 && Object.keys(api().state).indexOf('wrong') >= 0);
+  t('불러온 뒤 오류 0', (W().__errs || []).length === 0, JSON.stringify(W().__errs || []));
+  api().HOME(); await wait(60);
+  W().scrollTo(0, 700); await wait(90);
+  var hTop = q('#top').getBoundingClientRect().top;
+  t('스크롤해도 헤더가 붙어 있다', Math.abs(hTop) <= 1, hTop);
+  W().scrollTo(0, 0); await wait(60);
+
+
+  log('sec', 'U. v15 개념어 사전 확장 · 단어 경계 전수 검사');
+  var terms = api().terms;
+  t('개념어 사전 300개 이상', terms.length >= 300, terms.length);
+  var dupTerms = [];
+  (function(){ var seen = {}; terms.forEach(function(w){ if(seen[w]) dupTerms.push(w); seen[w] = 1; }); })();
+  eq('개념어 중복 0', dupTerms.length, 0);
+  var HANG = /[가-힣]/;
+  var TAILS = ['으로서','에서','에게','에는','에도','으로','부터','까지','처럼','라고','라는','라도','이다','이며','이고','이나','인지','인가','하지','한다','하여','하면','되면','된다','되는','되지','은','는','이','가','을','를','의','에','로','과','와','도','만','보다'];
+  function tailOK(rest){
+    if(!rest) return true;
+    for(var i = 0; i < TAILS.length; i++){
+      var w = TAILS[i];
+      if(rest.slice(0, w.length) === w){
+        var nx = rest.charAt(w.length);
+        if(!nx || !HANG.test(nx)) return true;
+      }
+    }
+    return !HANG.test(rest.charAt(0));
+  }
+  var badPrev = [], badTail = [], hitStmt = 0, hitTotal = 0;
+  api().bank.forEach(function(q){
+    var t0 = String(q.stmt || '');
+    var hs = api().termHits(t0);
+    if(hs.length) hitStmt++;
+    hitTotal += hs.length;
+    hs.forEach(function(h){
+      if(h.a > 0 && HANG.test(t0.charAt(h.a - 1))) badPrev.push(q.id + ':' + t0.slice(Math.max(0, h.a - 4), h.b));
+      if(!tailOK(t0.slice(h.b))) badTail.push(q.id + ':' + t0.slice(h.a, Math.min(t0.length, h.b + 3)));
+    });
+  });
+  eq('개념어가 앞 글자와 붙어 가려진 칸 0', badPrev.length, 0);
+  eq('개념어 뒤 조사·어미 규칙 위반 0', badTail.length, 0);
+  t('개념어가 걸린 지문 1,000개 이상', hitStmt >= 1000, hitStmt);
+  t('개념어 칸 합계 1,500개 이상', hitTotal >= 1500, hitTotal);
+
+  api().setBlind(false); api().setBlindWho(false); api().setBlindWord(true);
+  var overlapX = 0;
+  api().bank.forEach(function(q){
+    var rs = api().maskRanges(q.stmt);
+    for(var i = 1; i < rs.length; i++){ if(rs[i].a < rs[i-1].b) overlapX++; }
+  });
+  eq('핵심어 모드에서 겹친 칸 0', overlapX, 0);
+
+  var SAFE = ['자본시장','부채비율','비한정','증여세법','취소소송','한계비용','초과부담','이연법인세부채','공정가치모형',
+    '부작위위법확인소송','무효등확인소송','조세귀착','균형예산귀착','차별귀착','사용자비용탄력성','한계실효세율','국민기초생활보장'];
+  var splitW = [];
+  api().bank.forEach(function(q){
+    var t0 = q.stmt, rs = api().maskRanges(t0);
+    SAFE.forEach(function(w){
+      var p = t0.indexOf(w);
+      while(p >= 0){
+        var e = p + w.length;
+        rs.forEach(function(r){
+          var partial = (r.a >= p && r.a < e && r.b <= e) && !(r.a === p && r.b === e);
+          if(partial) splitW.push(q.id + ':' + w + '→' + t0.slice(r.a, r.b));
+        });
+        p = t0.indexOf(w, p + 1);
+      }
+    });
+  });
+  eq('아는 낱말 가운데를 쪼갠 칸 0', splitW.length, 0);
+
+  api().setBlind(true); api().setBlindWord(true); api().setBlindWho(true);
+  function covOf(subj){
+    var tot = 0, hit = 0;
+    api().bank.forEach(function(q){
+      if(subj && q.subject !== subj) return;
+      tot++; if(api().maskCount(q.stmt) > 0) hit++;
+    });
+    return {tot: tot, hit: hit, pct: Math.round(hit / tot * 100)};
+  }
+  var covJ = covOf('재정학'), covH = covOf('행정소송법'), covA = covOf('회계학개론(말문제)'), covS = covOf('세법학개론'), covAll = covOf(null);
+  t('재정학 빈칸 커버리지 60% 이상', covJ.pct >= 60, covJ.pct + '% (' + covJ.hit + '/' + covJ.tot + ')');
+  t('행소법 빈칸 커버리지 70% 이상', covH.pct >= 70, covH.pct + '% (' + covH.hit + '/' + covH.tot + ')');
+  t('회계 빈칸 커버리지 80% 이상', covA.pct >= 80, covA.pct + '%');
+  t('세법 빈칸 커버리지 60% 이상', covS.pct >= 60, covS.pct + '%');
+  t('전체 빈칸 커버리지 72% 이상', covAll.pct >= 72, covAll.pct + '% (' + covAll.hit + '/' + covAll.tot + ')');
+
+  eq('대비어 쌍 10개', api().TRAP_PAIRS.length, 10);
+  [['전에','후에'], ['귀속','귀착'], ['부터','까지']].forEach(function(pair, k){
+    var p2 = api().TRAP_PAIRS[7 + k], sample = null;
+    api().bank.some(function(q){
+      if(q.stmt.indexOf(pair[0]) >= 0 && api().trapRows(q).some(function(r){ return r.p === p2; })){ sample = q; return true; }
+      return false;
+    });
+    t('신규 대비어 쌍 ' + pair.join('/') + ' 이 잡힌다', !!sample, pair.join('/'));
+  });
+  api().setBlind(false); api().setBlindWord(false); api().setBlindWho(false);
+  api().HOME(); await wait(60);
+
+  log('sec', 'V. v15 과목별 시간 × 정답률 · sweet spot 페이스');
+  var ST = api().state;
+  ST.att = [];
+  ST.cfg.pace = 0;
+  api().subjects.forEach(function(s){
+    var poolS = api().bank.filter(function(q){ return q.subject === s; }).slice(0, 12);
+    poolS.forEach(function(q, i){ ST.att.push([q.id, i < 8 ? 10000 : (i < 10 ? 30000 : 100000), i < 8 ? 1 : 0]); });
+  });
+  api().HOME(); await wait(50);
+  clickSel('#statsbtn'); await wait(100);
+  eq('과목 칩 5개(전체 포함)', qa('.tchip').length, 5);
+  eq('과목별 sweet spot 행 4개', qa('.tsrow').length, 4);
+  t('전체 sweet spot 안내', body().indexOf('가장 정답률이 높은 구간') >= 0, body().slice(0, 200));
+  t('페이스 추천 30초', body().indexOf('답안지 페이스 30초') >= 0, body().slice(0, 300));
+  t('페이스 적용 버튼 있음', !!q('.pacebox button[data-act="set-pace"]'));
+  clickSel('.tchip[data-s="재정학"]'); await wait(90);
+  t('과목 칩 선택 표시', (q('.tchip.on') || {textContent: ''}).textContent.indexOf('재정학') >= 0);
+  t('선택 과목 표본 표시', body().indexOf('재정학 표본 12문항') >= 0, body().slice(0, 260));
+  t('과목 sweet spot ~20초 100%', body().indexOf('재정학은 ~20초에서 100%') >= 0, body().slice(0, 300));
+  t('과목 화면에서는 과목 목록 숨김', qa('.tsrow').length === 0);
+  eq('과목 화면도 5구간', qa('.tbrow').length, 5);
+  clickSel('.pacebox button[data-act="set-pace"]'); await wait(100);
+  eq('페이스 30초로 저장', parseInt(api().state.cfg.pace, 10), 30);
+  t('적용 뒤 안내가 바뀐다', body().indexOf('로 두고 풀고 있습니다') >= 0, body().slice(0, 300));
+  api().HOME(); await wait(40); clickSel('#statsbtn'); await wait(80);
+  t('과목 선택이 유지된다', (q('.tchip.on') || {textContent: ''}).textContent.indexOf('재정학') >= 0);
+  var keepV = ST.att.slice();
+  ST.att = keepV.filter(function(a){ var qq2 = qOf(a[0]); return qq2 && qq2.subject === '재정학'; }).slice(0, 2);
+  api().HOME(); await wait(40); clickSel('#statsbtn'); await wait(90);
+  t('표본이 적으면 더 풀기 안내', body().indexOf('10문항쯤 더 풀면') >= 0, body().slice(0, 260));
+  ST.att = keepV;
+  ST.cfg.pace = 0;
+  api().HOME(); await wait(40);
+
+  log('sec', 'W. v15 취약 드릴 전/후 비교');
+  ST.wrong = {}; ST.dnk = {}; ST.att = []; ST.ans = {};
+  var pool10 = api().bank.slice(1500, 1510);
+  pool10.forEach(function(q, i){
+    ST.ans[q.id] = {n: 2, o: 1, x: 1, last: Date.now(), lw: Date.now()};
+    if(i < 6) ST.wrong[q.id] = {w: 1, last: Date.now(), res: 0};
+    ST.att.push([q.id, 70000, 0]);
+  });
+  api().HOME(); await wait(50);
+  var drW = api().drill();
+  eq('드릴 대상 10문항', drW.items.length, 10);
+  api().startDrill(); await wait(90);
+  var dbW = api().drillBase();
+  t('드릴 전 기준을 잡았다', !!dbW && dbW.n > 0 && dbW.seen === 10, JSON.stringify(dbW));
+  eq('드릴 전 누적 정답률 50%', dbW ? Math.round(dbW.o / dbW.n * 100) : -1, 50);
+  var wi = 0;
+  for(wi = 0; wi < 10; wi++){
+    var ws = api().session(), wq = qOf(ws.ids[ws.i]);
+    clickSel('.pick.' + (wq.answer === 'O' ? 'o' : 'x')); await wait(35);
+    clickSel('#bar button[data-act="next"]'); await wait(40);
+  }
+  eq('드릴 완료 화면', api().view().name, 'done');
+  t('드릴 전/후 비교 한 줄 있음', !!q('.drcmp'), body().slice(0, 160));
+  t('비교 문구에 전 50% · 지금 100%', /드릴 전 이 문항들 50%/.test(body()) && /지금 100%/.test(body()), (q('.drcmp') || {innerText: ''}).innerText);
+  t('변화 +50%p 표시', ((q('.drcmp') || {innerText: ''}).innerText || '').indexOf('+50%p') >= 0, (q('.drcmp') || {innerText: ''}).innerText);
+  t('드릴 완료 라벨', body().indexOf('취약 문항 드릴 완료') >= 0, body().slice(0, 60));
+  api().startRetry([pool10[0].id]); await wait(60);
+  var rq2 = qOf(api().session().ids[0]);
+  clickSel('.pick.' + (rq2.answer === 'O' ? 'o' : 'x')); await wait(40);
+  clickSel('#bar button[data-act="next"]'); await wait(60);
+  t('다른 모드에는 비교 줄 없음', api().view().name === 'done' && !q('.drcmp'));
+  t('드릴 기준은 저장되지 않는다', JSON.stringify(api().state).indexOf('drillBase') < 0);
+  api().HOME(); await wait(40);
+
+  log('sec', 'X. v15 빈칸 전용 10제');
+  api().setBlind(false); api().setBlindWord(false); api().setBlindWho(false);
+  api().HOME(); await wait(60);
+  t('홈에 빈칸 전용 카드', !!q('button[data-act="start-blind"]'));
+  t('카드에 가릴 지문 수', /가린 지문 [\d,]+개/.test(body()), body().slice(0, 220));
+  clickSel('button[data-act="start-blind"]'); await wait(140);
+  eq('빈칸 세션 모드', api().session().mode, 'blind');
+  eq('빈칸 세트 10문항', api().session().ids.length, 10);
+  t('모드가 없으면 핵심어를 켠다', api().blindWordOn() === true);
+  var idsX = api().session().ids, uniqX = {}, dupX = false;
+  idsX.forEach(function(id){ if(uniqX[id]) dupX = true; uniqX[id] = 1; });
+  t('빈칸 세트 중복 0', !dupX);
+  t('모든 문항에 가릴 칸이 있다', idsX.every(function(id){ return api().maskCount(qOf(id).stmt) > 0; }));
+  t('화면에 가린 칸', qa('.stmt .bl').length > 0, qa('.stmt .bl').length);
+  t('답하기 전 대비어 0', qa('.tw').length === 0, qa('.tw').length);
+  eq('빈칸 고르개 3항목', qa('.blindbar .bsel').length, 3);
+  var xi = 0;
+  for(xi = 0; xi < 10; xi++){
+    var xs = api().session(), xq = qOf(xs.ids[xs.i]);
+    clickSel('.pick.' + (xq.answer === 'O' ? 'o' : 'x')); await wait(30);
+    clickSel('#bar button[data-act="next"]'); await wait(35);
+  }
+  t('빈칸 세트 완료 라벨', api().view().name === 'done' && body().indexOf('빈칸 전용 10제 완료') >= 0, body().slice(0, 80));
+  api().HOME(); await wait(40);
+  api().setScope('재정학'); await wait(70);
+  clickSel('button[data-act="start-blind"]'); await wait(140);
+  eq('과목 범위에서도 10문항', api().session().ids.length, 10);
+  t('과목 범위 안에서만 출제', api().session().ids.every(function(id){ return qOf(id).subject === '재정학'; }),
+    api().session().ids.map(function(id){ return qOf(id).subject; }).slice(0, 3).join('/'));
+  api().HOME(); await wait(40);
+  api().setScope('전체'); await wait(70);
+  api().setBlind(false); api().setBlindWord(false); api().setBlindWho(true);
+  api().HOME(); await wait(50);
+  clickSel('button[data-act="start-blind"]'); await wait(140);
+  t('주체 모드만으로도 10문항', api().session().ids.length === 10 &&
+    api().session().ids.every(function(id){ return /class="bl who"/.test(api().maskHTML(qOf(id).stmt)); }),
+    qa('.stmt .bl.who').length);
+  api().HOME(); await wait(40);
+  api().setBlindWho(false); api().setBlindWord(true);
+  await wait(50);
+
+  log('sec', 'I. 레이아웃(360) · 콘솔');
+  async function overflowCheck(name){
+    await wait(50);
+    var de = D().documentElement;
+    var sw = Math.max(de.scrollWidth, D().body.scrollWidth), cw = de.clientWidth;
+    t(name + ' 가로 넘침 없음', sw <= cw + 1, 'scrollW=' + sw + ' clientW=' + cw);
+    var wide = qa('#view *').filter(function(e){
+      var r = e.getBoundingClientRect();
+      return r.width > cw + 2 || r.right > cw + 3;
+    }).map(function(e){ return (e.className || e.tagName) + ':' + Math.round(e.getBoundingClientRect().width); }).slice(0, 3);
+    t(name + ' 요소 넘침 없음', wide.length === 0, wide.join(' | '));
+  }
+  api().HOME(); await wait(70); await overflowCheck('홈');
+  clickSel('#statsbtn'); await wait(70); await overflowCheck('통계');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('button[data-act="wrong"]'); await wait(60); await overflowCheck('오답노트');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('button[data-act="rounds"]'); await wait(60); await overflowCheck('회차');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('button[data-act="search"]'); await wait(60); await overflowCheck('검색');
+  clickSel('button[data-act="home"]'); await wait(50);
+  clickSel('#bar button[data-act="daily"]'); await wait(70); await overflowCheck('학습');
+  t('콘솔 오류 0건', (W().__errs || []).length === 0, JSON.stringify(W().__errs || []));
+}
+
+run().catch(function(e){
+  log('fail', '스크립트 예외', String(e && e.stack || e));
+  summ();
+});
+</script>
+</body>
+</html>
