@@ -908,7 +908,10 @@ async function suite(){
   eq('과목 화면도 5구간', qa('.tbrow').length, 5);
   t('페이스 문장이 한 줄로 읽힌다', ((q('.pacebox .ptxt') || {innerText: ''}).innerText || '').indexOf('\n') < 0,
     JSON.stringify((q('.pacebox .ptxt') || {innerText: ''}).innerText));
-  t('페이스 안내 높이 정상', (q('.pacebox') || {getBoundingClientRect: function(){ return {height: 999}; }}).getBoundingClientRect().height < 96);
+  t('페이스 문장 폭이 충분하다', ((q('.pacebox .ptxt') || {getBoundingClientRect: function(){ return {width: 0}; }}).getBoundingClientRect().width) >= 240,
+    Math.round(((q('.pacebox .ptxt') || {getBoundingClientRect: function(){ return {width: 0}; }}).getBoundingClientRect().width)));
+  t('페이스 안내 높이 정상', (q('.pacebox') || {getBoundingClientRect: function(){ return {height: 999}; }}).getBoundingClientRect().height < 180,
+    Math.round((q('.pacebox') || {getBoundingClientRect: function(){ return {height: 999}; }}).getBoundingClientRect().height));
   clickSel('.pacebox button[data-act="set-pace"]'); await wait(120);
   eq('페이스 30초로 저장', parseInt(api().state.cfg.pace, 10), 30);
   t('적용 뒤 안내가 바뀐다', body().indexOf('로 두고 풀고 있습니다') >= 0, body().slice(0, 300));

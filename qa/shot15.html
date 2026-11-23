@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><title>v15 화면 촬영</title>
+<style>
+  body{margin:0;background:#1b1f2a;display:flex;justify-content:center;padding:0}
+  iframe{border:0;display:block;background:#fff}
+</style></head>
+<body>
+<iframe id="f" width="390" height="844"></iframe>
+<script>
+var Q = new URLSearchParams(location.search);
+var STEP = Q.get('s') || 'home';
+var WID = parseInt(Q.get('w') || '390', 10);
+var f = document.getElementById('f');
+f.width = WID;
+f.height = WID === 430 ? 932 : (WID === 360 ? 780 : 844);
+try{ localStorage.removeItem('sebeop_ox_v1'); }catch(e){}
+
+function W(){ return f.contentWindow; }
+function D(){ return f.contentDocument; }
+function q(sel){ return D().querySelector(sel); }
+function click(sel){ var el = q(sel); if(el) el.click(); return !!el; }
+function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+f.onload = async function(){
+  await wait(420);
+  var api = W().__sebeop, S = api.state;
+  if(STEP === 'home'){ return; }
+  if(STEP === 'blind'){
+    S.flags.blindw = true; api.HOME(); await wait(80);
+    click('button[data-act="start-blind"]'); await wait(200);
+    var ss = api.session(), qq = api.bank.filter(function(x){ return x.id === ss.ids[ss.i]; })[0];
+    var wrong = qq.answer === 'O' ? 'x' : 'o';
+    click('.pick.' + wrong); await wait(180);
+    return;
+  }
+  /* 시간 분석·드릴 씨드 */
+  api.subjects.forEach(function(s, si){
+    var pool = api.bank.filter(function(x){ return x.subject === s; }).slice(0, 14);
+    pool.forEach(function(x, i){
+      /* 과목마다 sweet spot을 다르게: 세법 40~60초, 재정학 ~20초, 행소법 60~90초, 회계 20~40초 */
+      var plan = [{lo:40, mid:60, hi:110}, {lo:12, mid:28, hi:95}, {lo:66, mid:80, hi:120}, {lo:24, mid:36, hi:100}][si];
+      var ms = i < 8 ? plan.lo * 1000 : (i < 11 ? plan.mid * 1000 : plan.hi * 1000);
+      S.att.push([x.id, ms, (i < 8 || i === 11) ? 1 : 0]);
+      S.ans[x.id] = {n: 2, o: 1, x: 1, last: Date.now(), lw: Date.now()};
+      if(i >= 11) S.wrong[x.id] = {w: 1, last: Date.now(), res: 0};
+    });
+  });
+  S.cfg.pace = 0;
+  if(STEP === 'dark'){ S.flags.theme = 'dark'; }
+  api.HOME(); await wait(80);
+  if(STEP === 'drill'){
+    api.startDrill(); await wait(120);
+    for(var i = 0; i < 10; i++){
+      var ss2 = api.session(), q2 = api.bank.filter(function(x){ return x.id === ss2.ids[ss2.i]; })[0];
+      click('.pick.' + (q2.answer === 'O' ? 'o' : 'x')); await wait(45);
+      click('#bar button[data-act="next"]'); await wait(60);
+    }
+    return;
+  }
+  click('#statsbtn'); await wait(160);
+  if(STEP === 'timesub'){ click('.tchip[data-s="재정학"]'); await wait(160); }
+  W().scrollTo(0, STEP === 'timesub' || STEP === 'dark' ? 330 : 300); await wait(120);
+};
+f.src = '../index.html?qa=1&s=' + Date.now();
+</script>
+</body></html>
