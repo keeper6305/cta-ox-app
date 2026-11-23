@@ -581,10 +581,11 @@ main#view.qz{display:flex; flex-direction:column;}
 .tchip[disabled]{opacity:.42; cursor:default;}
 .tsweet b{font-variant-numeric:tabular-nums;}
 .pacebox{
-  margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px;
   padding:10px 12px; border-radius:12px; background:var(--surface2);
   font-size:.74rem; line-height:1.55; word-break:keep-all; font-weight:600;
 }
+.pacebox .ptxt{flex:1 1 auto; min-width:0;}
 .pacebox b{font-variant-numeric:tabular-nums;}
 .pacebox .btn{width:auto; flex:none; min-height:38px; margin-left:auto;}
 .tsubj{display:flex; flex-direction:column;}
@@ -894,7 +895,8 @@ var TERM_WORDS = [
   '취소소송', '무효확인소송', '처분변경', '재결', '이송', '철회', '부관', '상대가격',
   '한계실효세율', '한계소득세율', '사용자비용탄력성', '완전손실상계제도', '자산대체효과', '순수공공재', '국고보조금',
   '거래비용', '재분배효과', '조세지출', '목적세', '인플레이션', '자기자본', '감가상각률', '영세율', '환경세',
-  '변론종결', '간접강제', '원처분주의', '재심청구', '참가신청', '취소청구', '증거조사', '사실관계', '공공복리'
+  '변론종결', '간접강제', '원처분주의', '재심청구', '참가신청', '취소청구', '증거조사', '사실관계', '공공복리',
+  '한계초과부담'
 ];
 var TERM_RX = new RegExp(TERM_WORDS.join('|'), 'g');
 /* 용어 뒤에 올 수 있는 것 — 조사·서술 어미, 또는 한글이 아닌 글자(끝·공백·구두점) */
@@ -2400,8 +2402,8 @@ function timeCardHTML(){
   /* sweet spot → 답안지 페이스 추천 — 지금 페이스와 다를 때만 버튼 */
   var rec = paceForBucket(sweet), cur = parseInt(S.cfg.pace, 10) || 0;
   if(rec){
-    body += '<div class="pacebox">💡 ' + (sel ? esc(shortName(sel)) + '은 ' : '전체는 ') + '<b>' + esc(sweet.lb) + '</b>에서 ' + pct(sweet.ok, sweet.n) + '%' +
-      ' — 답안지 페이스 <b>' + rec + '초</b>' + (cur === rec ? '로 두고 풀고 있습니다.' : '로 두면 이 구간을 넘지 않습니다.') +
+    body += '<div class="pacebox"><span class="ptxt">💡 ' + (sel ? esc(shortName(sel)) + '은 ' : '전체는 ') + '<b>' + esc(sweet.lb) + '</b>에서 ' + pct(sweet.ok, sweet.n) + '%' +
+      ' — 답안지 페이스 <b>' + rec + '초</b>' + (cur === rec ? '로 두고 풀고 있습니다.' : '로 두면 이 구간을 넘지 않습니다.') + '</span>' +
       (cur === rec ? '' : '<button type="button" class="btn sm ghost" data-act="set-pace" data-p="' + rec + '">페이스 ' + rec + '초로</button>') +
       '</div>';
   }
@@ -2457,12 +2459,29 @@ function drillCardHTML(){
     '<button class="btn sm primary" type="button" data-act="start-drill">드릴 시작</button></div>';
 }
 /* v15 — 빈칸 전용 10제: 문제 풀이 중 토글로만 있던 빈칸 훈련을 홈에서 한 세트로 바로 시작 */
+/* v15 — 빈칸 전용 10제 카드에 쓸 “지금 모드로 가릴 수 있는 지문 수”.
+   flag를 잠시 바꿔 세고 되돌린다(저장은 하지 않는다). 범위·모드 조합마다 한 번만 센다. */
+var BLCOUNT = {};
+function blindCountFor(num, word, who){
+  var key = scope() + '|' + (num ? 1 : 0) + (word ? 1 : 0) + (who ? 1 : 0);
+  if(BLCOUNT[key] !== undefined) return BLCOUNT[key];
+  var keep = [blindNumOn(), blindWordOn(), blindWhoOn()];
+  S.flags.blind = !!num; S.flags.blindw = !!word; S.flags.blindwho = !!who;
+  var n = 0;
+  for(var i = 0; i < BANK.length; i++){
+    if(inScope(BANK[i]) && maskRanges(BANK[i].stmt).length) n++;
+  }
+  S.flags.blind = keep[0]; S.flags.blindw = keep[1]; S.flags.blindwho = keep[2];
+  BLCOUNT[key] = n;
+  return n;
+}
 function blindCardHTML(){
-  var cov = blindCoverage(), on = blindModes();
+  var on = blindModes();
+  var n = on.length ? blindCountFor(blindNumOn(), blindWordOn(), blindWhoOn()) : blindCountFor(false, true, false);
   return '<div class="drillcard" style="border-color:var(--warn)">' +
     '<div class="bd"><div class="t">🎯 빈칸 전용 10제</div>' +
     '<div class="d">' + (on.length ? esc(on.join(' · ')) + '를 가린' : '핵심어를 켜고 가린') +
-      ' 지문 ' + cov.any.toLocaleString('ko-KR') + '개 중 10문항 — 가린 칸을 기억으로 채우고 O/X</div></div>' +
+      ' 지문 ' + n.toLocaleString('ko-KR') + '개 중 10문항 — 가린 칸을 기억으로 채우고 O/X</div></div>' +
     '<button class="btn sm primary" type="button" data-act="start-blind">시작</button></div>';
 }
 
