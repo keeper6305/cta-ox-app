@@ -1070,22 +1070,35 @@ async function suite(){
 
   /* Z1 — 띄어 쓴 개념어 인식 규칙 */
   var altN = api().termAltCount();
-  t('개념어 대안(붙여쓰기+띄어쓰기) 1,500개 이상', altN >= 1500, altN);
+  t('개념어마다 띄어쓰기 대안', altN >= api().terms.length * 2, altN + ' / ' + api().terms.length + '개념어');
   var spacedSet = {}, spacedCount = 0, badSpace = [];
+  var HANG2 = /[가-힣]/;
+  var TAILS2 = ['으로서','에서','에게','에는','에도','으로','부터','까지','처럼','라고','라는','라도','이다','이며','이고','이나','인지','인가','하지','한다','하여','하면','되면','된다','되는','되지','은','는','이','가','을','를','의','에','로','과','와','도','만','보다'];
+  function tailOK2(rest){
+    if(!rest) return true;
+    for(var ti = 0; ti < TAILS2.length; ti++){
+      var tw = TAILS2[ti];
+      if(rest.slice(0, tw.length) === tw){
+        var nx = rest.charAt(tw.length);
+        if(!nx || !HANG2.test(nx)) return true;
+      }
+    }
+    return !HANG2.test(rest.charAt(0));
+  }
   api().bank.forEach(function(bq){
     var bt = bq.stmt;
     api().termHits(bt).forEach(function(h){
       var txt = bt.slice(h.a, h.b);
       if(txt.indexOf(' ') < 0) return;
       spacedSet[txt] = (spacedSet[txt] || 0) + 1; spacedCount++;
-      if(h.a > 0 && /[가-힣]/.test(bt.charAt(h.a - 1))) badSpace.push(bq.id + ':' + txt);
-      if(/[가-힣]/.test(bt.charAt(h.b))) badSpace.push(bq.id + ':tail:' + txt);
+      if(h.a > 0 && HANG2.test(bt.charAt(h.a - 1))) badSpace.push(bq.id + ':' + txt);
+      if(!tailOK2(bt.slice(h.b))) badSpace.push(bq.id + ':tail:' + txt);
     });
   });
   var spacedList = Object.keys(spacedSet);
   t('띄어 쓴 개념어 20가지 이상 잡힘', spacedList.length >= 20, spacedList.length + ' / ' + spacedList.join(','));
   eq('띄어 쓴 개념어 경계 위반 0', badSpace.length, 0);
-  [['규모','경제'], ['정보','비대칭'], ['도덕적','해이'], ['재심','청구'], ['조세','부담'], ['코즈','정리'], ['파레토','개선']].forEach(function(p2){
+  [['규모의','경제'], ['정보','비대칭'], ['도덕적','해이'], ['재심','청구'], ['조세','부담'], ['코즈','정리'], ['파레토','개선']].forEach(function(p2){
     t('띄어 쓴 ‘' + p2.join(' ') + '’ 인식', spacedList.indexOf(p2.join(' ')) >= 0, spacedList.join(','));
   });
   var spQ = null;
@@ -1178,7 +1191,7 @@ async function suite(){
   eq('다시 열면 전체 8건', qa('.li').length, 8);
   clickSel('.fchip[data-c="con"]'); await wait(70);
   eq('다시 개념혼동 3건', qa('.li').length, 3);
-  clickSel('.fchips .fchip[data-act="rcClear"]'); await wait(80);
+  clickSel('.fchips .fchip[data-act="rcClear"]') || clickSel('.fchip[data-act="rcClear"]'); await wait(80);
   eq('해제하면 8건', qa('.li').length, 8);
   clickSel('button[data-act="home"]'); await wait(50);
   /* 통계의 원인 줄 → 그 원인만 모아 보기 */

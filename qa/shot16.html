@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><title>v16 화면 촬영</title>
+<style>
+  body{margin:0;background:#1b1f2a;display:flex;justify-content:center;padding:0}
+  iframe{border:0;display:block;background:#fff}
+</style></head>
+<body>
+<iframe id="f" width="390" height="844"></iframe>
+<script>
+var Q = new URLSearchParams(location.search);
+var STEP = Q.get('s') || 'home';
+var WID = parseInt(Q.get('w') || '390', 10);
+var SCROLL = parseInt(Q.get('y') || '300', 10);
+var f = document.getElementById('f');
+f.width = WID;
+f.height = WID === 430 ? 932 : (WID === 360 ? 780 : 844);
+try{ localStorage.removeItem('sebeop_ox_v1'); }catch(e){}
+
+function W(){ return f.contentWindow; }
+function D(){ return f.contentDocument; }
+function q(sel){ return D().querySelector(sel); }
+function qa(sel){ return Array.prototype.slice.call(D().querySelectorAll(sel)); }
+function click(sel){ var el = q(sel); if(el) el.click(); return !!el; }
+function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+f.onload = async function(){
+  await wait(420);
+  var api = W().__sebeop, S = api.state;
+  if(STEP === 'home'){ if(WID === 390) W().scrollTo(0, 520); return; }
+
+  /* 오답 원인 필터 — 원인 태그가 쌓인 오답노트 */
+  if(STEP === 'wrong' || STEP === 'wrongf' || STEP === 'wrongdark'){
+    var pool = api.bank.filter(function(x){ return x.subject === '재정학'; }).slice(0, 9);
+    var cs = ['con', 'con', 'con', 'num', 'num', 'exc', '', '', 'who'];
+    pool.forEach(function(x, i){
+      S.wrong[x.id] = {w: (i % 3) + 1, last: Date.now() - i * 7200000, res: 0};
+      S.ans[x.id] = {n: 2, o: 1, x: 1, last: Date.now(), lw: Date.now()};
+      if(cs[i]) S.rc[x.id] = {c: cs[i], at: Date.now()};
+    });
+    if(STEP === 'wrongdark') S.flags.theme = 'dark';
+    api.HOME(); await wait(80);
+    click('button[data-act="wrong"]'); await wait(160);
+    if(STEP === 'wrongf'){ click('.fchip[data-c="con"]'); await wait(160); }
+    return;
+  }
+
+  /* 표본이 적은 sweet spot — 참고 배지 */
+  if(STEP === 'tsweet' || STEP === 'tsweetdark'){
+    var jp = api.bank.filter(function(x){ return x.subject === '재정학'; }).slice(0, 7);
+    jp.forEach(function(x, i){ S.att.push([x.id, i < 4 ? 30000 : 78000, i < 4 ? 1 : 0]); });
+    var hp = api.bank.filter(function(x){ return x.subject === '행정소송법'; }).slice(0, 4);
+    hp.forEach(function(x, i){ S.att.push([x.id, i < 3 ? 80000 : 15000, i < 3 ? 1 : 0]); });
+    if(STEP === 'tsweetdark') S.flags.theme = 'dark';
+    api.HOME(); await wait(80);
+    click('#statsbtn'); await wait(180);
+    W().scrollTo(0, 640); await wait(140);
+    return;
+  }
+
+  /* 빈칸이 많은 지문 — 칸 수 안내 · dense */
+  if(STEP === 'dense' || STEP === 'densedark'){
+    S.flags.blindw = true;
+    if(STEP === 'densedark') S.flags.theme = 'dark';
+    var dq = null;
+    api.bank.forEach(function(x){ if(!dq && api.maskCount(x.stmt) >= 5) dq = x; });
+    api.HOME(); await wait(60);
+    api.start('retry', {ids: [dq.id]}); await wait(200);
+    return;
+  }
+};
+f.src = '../index.html?qa=1&s=' + Date.now();
+</script>
+</body></html>
