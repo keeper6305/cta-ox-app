@@ -48,12 +48,13 @@ f.onload = async function(){
   if(STEP === 'tsweet' || STEP === 'tsweetdark'){
     var jp = api.bank.filter(function(x){ return x.subject === '재정학'; }).slice(0, 7);
     jp.forEach(function(x, i){ S.att.push([x.id, i < 4 ? 30000 : 78000, i < 4 ? 1 : 0]); });
-    var hp = api.bank.filter(function(x){ return x.subject === '행정소송법'; }).slice(0, 4);
-    hp.forEach(function(x, i){ S.att.push([x.id, i < 3 ? 80000 : 15000, i < 3 ? 1 : 0]); });
     if(STEP === 'tsweetdark') S.flags.theme = 'dark';
     api.HOME(); await wait(80);
     click('#statsbtn'); await wait(180);
-    W().scrollTo(0, 640); await wait(140);
+    /* 시간 카드가 화면 위쪽에 오게 — 카드 앞 요소 높이를 재어 스크롤 */
+    var hd = q('.tsweet');
+    if(hd){ W().scrollTo(0, Math.max(0, hd.getBoundingClientRect().top + W().scrollY - 120)); }
+    await wait(140);
     return;
   }
 
