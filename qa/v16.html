@@ -1213,6 +1213,7 @@ async function suite(){
   var blN = qa('.stmt .bl').length;
   t('지문에 가린 칸 4개 이상', blN >= 4, blN);
   eq('힌트에 가린 칸 수', (q('.blhint .blcnt') || {textContent:''}).textContent, '가린 칸 ' + blN + '개');
+  eq('상단에도 빈칸 수', (q('.qcount .bcnt') || {textContent:''}).textContent, '빈칸 ' + blN);
   t('빈칸 많은 지문에 dense 표시', q('.stmt').classList.contains('dense'));
   t('dense 지문 가로 넘침 없음', Math.max(D().documentElement.scrollWidth, D().body.scrollWidth) <= fr().width + 1,
     'scrollW=' + D().documentElement.scrollWidth);
@@ -1223,6 +1224,7 @@ async function suite(){
   t('모두 열면 안내', ((q('.blcnt') || {textContent:''}).textContent || '').indexOf('모두 열었습니다') >= 0, (q('.blcnt') || {textContent:''}).textContent);
   clickSel('.pick.o'); await wait(80);
   t('답하면 힌트가 사라진다', !q('.blhint') && qa('.stmt .bl.on').length >= 4, qa('.stmt .bl.on').length);
+  t('답하면 상단 빈칸 수도 사라진다', !q('.qcount .bcnt'));
   clickSel('#bar button[data-act="next"]'); await wait(60);
   api().HOME(); await wait(40);
 

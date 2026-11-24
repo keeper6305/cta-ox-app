@@ -589,8 +589,12 @@ main#view.qz{display:flex; flex-direction:column;}
 .fchip.on{background:var(--text); color:var(--surface); border-color:var(--text);}
 .fchip[disabled]{opacity:.38; cursor:default;}
 .fchip .k{opacity:.7; margin-left:3px; font-size:.68rem;}
+.stmt.dense .bl.key{min-width:1.8em; padding:0 3px;}
+.stmt.dense .bl.who{min-width:1.7em; padding:0 3px;}
+.qcount .bcnt{color:var(--warn); font-weight:800; font-variant-numeric:tabular-nums;}
 .causerow.asbtn{width:100%; font:inherit; border:0; background:none; color:inherit; padding:6px 0; text-align:left; cursor:pointer;}
-.causerow.asbtn .go{flex:0 0 auto; font-size:.72rem; font-weight:800; color:var(--primary);}
+.causerow.asbtn .go{flex:0 0 auto; margin-left:auto; font-size:.72rem; font-weight:800; color:var(--primary);}
+.causerow.asbtn[disabled]{opacity:.42; cursor:default;}
 .blhint .blcnt{font-weight:800; color:var(--text); font-variant-numeric:tabular-nums;}
 .pacebox{
   margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px;
@@ -2639,7 +2643,8 @@ function renderQuiz(v, b){
     '</div>' +
     blindBarHTML() +
     progHTML +
-    '<div class="qcount"><span>' + pos + ' / ' + s.ids.length + '</span>' +
+    '<div class="qcount"><span>' + pos + ' / ' + s.ids.length +
+      (nBl && !isAnswered ? ' · <b class="bcnt">빈칸 ' + nBl + '</b>' : '') + '</span>' +
       '<span class="rt">' + comboHTML + '<span>정답 ' + s.ok + ' · 오답 ' + (Object.keys(s.answered).length - s.ok) + '</span></span></div>' +
     '<div class="qwrap">' +
     (q.q && q.q !== q.stmt && q.stmt.length < 20
