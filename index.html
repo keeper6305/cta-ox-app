@@ -580,6 +580,7 @@ main#view.qz{display:flex; flex-direction:column;}
 .tchip.on{background:var(--primary); color:#fff; border-color:var(--primary);}
 .tchip[disabled]{opacity:.42; cursor:default;}
 .tsweet b{font-variant-numeric:tabular-nums;}
+.tsweet{word-break:keep-all;}
 /* ═══ v16 · 표본 참고 배지 · 오답 원인 필터 · 빈칸 개수 ═══ */
 .refb{display:inline-block; margin:0 4px; padding:1px 6px; border-radius:999px; font-size:.64rem; font-weight:800;
   letter-spacing:.02em; background:var(--warn-bg); color:var(--warn); vertical-align:1px; font-variant-numeric:tabular-nums; white-space:nowrap;}
@@ -2460,7 +2461,8 @@ function timeCardHTML(){
   body += '<p class="tiny muted" style="margin-bottom:6px">' + (sel ? esc(shortName(sel)) + ' ' : '') + '표본 ' + n + '문항' +
     (n < 12 ? ' — 10문항쯤 더 풀면 더 정확해집니다' : '') + '</p>';
   body += sweet
-    ? '<p class="tiny tsweet" style="margin-bottom:6px">가장 정답률이 높은 구간 — <b>' + esc(sweet.lb) + '</b> (' + pct(sweet.ok, sweet.n) + '%, ' + sweet.n + '문항)' + refb + '</p>' +
+    ? '<p class="tiny tsweet" style="margin-bottom:6px">가장 정답률이 높은 구간' + refb +
+      ' — <b>' + esc(sweet.lb) + '</b> (' + pct(sweet.ok, sweet.n) + '%, ' + sweet.n + '문항)</p>' +
       (thin ? '<p class="tiny muted" style="margin-bottom:6px">표본이 ' + n + '문항뿐이라 참고용입니다 — 10문항을 더 풀면 구간이 바뀔 수 있어요.</p>' : '')
     : '<p class="tiny muted" style="margin-bottom:6px">구간마다 3문항 이상 쌓여야 sweet spot을 고릅니다.</p>';
   body += timeBarsHTML(bs);
