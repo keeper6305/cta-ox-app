@@ -580,6 +580,18 @@ main#view.qz{display:flex; flex-direction:column;}
 .tchip.on{background:var(--primary); color:#fff; border-color:var(--primary);}
 .tchip[disabled]{opacity:.42; cursor:default;}
 .tsweet b{font-variant-numeric:tabular-nums;}
+/* ═══ v16 · 표본 참고 배지 · 오답 원인 필터 · 빈칸 개수 ═══ */
+.refb{display:inline-block; margin:0 4px; padding:1px 6px; border-radius:999px; font-size:.64rem; font-weight:800;
+  letter-spacing:.02em; background:var(--warn-bg); color:var(--warn); vertical-align:1px; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.fchips{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px;}
+.fchip{font:inherit; font-size:.72rem; font-weight:800; min-height:34px; padding:6px 10px; border-radius:999px;
+  border:1px solid var(--line); background:var(--surface2); color:var(--muted); cursor:pointer; font-variant-numeric:tabular-nums;}
+.fchip.on{background:var(--text); color:var(--surface); border-color:var(--text);}
+.fchip[disabled]{opacity:.38; cursor:default;}
+.fchip .k{opacity:.7; margin-left:3px; font-size:.68rem;}
+.causerow.asbtn{width:100%; font:inherit; border:0; background:none; color:inherit; padding:6px 0; text-align:left; cursor:pointer;}
+.causerow.asbtn .go{flex:0 0 auto; font-size:.72rem; font-weight:800; color:var(--primary);}
+.blhint .blcnt{font-weight:800; color:var(--text); font-variant-numeric:tabular-nums;}
 .pacebox{
   margin-top:10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px;
   padding:10px 12px; border-radius:12px; background:var(--surface2);
@@ -641,7 +653,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=15"></script>
+<script src="./bank.js?v=16"></script>
 <script>
 (function(){
 'use strict';
@@ -896,9 +908,30 @@ var TERM_WORDS = [
   '한계실효세율', '한계소득세율', '사용자비용탄력성', '완전손실상계제도', '자산대체효과', '순수공공재', '국고보조금',
   '거래비용', '재분배효과', '조세지출', '목적세', '인플레이션', '자기자본', '감가상각률', '영세율', '환경세',
   '변론종결', '간접강제', '원처분주의', '재심청구', '참가신청', '취소청구', '증거조사', '사실관계', '공공복리',
-  '한계초과부담'
+  '한계초과부담',
+  /* v16 — 세법 과목·절차 용어와 재정학 복합 개념어. 2,524지문에 실제로 나오는 말만 넣었다
+     ('중간예납'·'신고납부'처럼 늘 '중간예납세액' 꼴로만 나오는 말은 경계 규칙이 이미 막아
+     한 칸도 만들지 못하므로 넣지 않았다 — 빈칸만 늘고 배울 게 없으면 소음이다). */
+  '부가가치세', '소득세', '원천징수', '세액공제', '소득공제', '가산세', '증여세', '상속세', '재산세',
+  '기부금', '필요경비', '관세', '탈세', '후생함수', '능력원칙', '편익원칙', '독점시장', '실효세율',
+  '경기변동', '총비용', '총수입'
 ];
-var TERM_RX = new RegExp(TERM_WORDS.join('|'), 'g');
+/* ─────────── v16 · 띄어 쓴 개념어 인식 규칙 ───────────
+   기출 지문은 같은 개념을 붙여 쓰기도, 띄어 쓰기도 한다("규모의경제"/"규모의 경제",
+   "정보비대칭"/"정보 비대칭"). v15까지 사전은 붙여 쓴 한 어절만 잡아 띄어 쓴 쪽에는 빈칸이
+   생기지 않았다. 낱말 경계에서만 띄어 쓰므로 **양쪽이 모두 두 글자 이상인 자리**에 한 칸
+   공백이 있으면 같은 개념어로 본다. 앞 글자·꼬리 규칙(단어 경계)은 그대로 적용된다.
+   긴 개념어를 앞에 두는 정렬도 함께 바꿨다 — '독점시장'보다 '독점'을 먼저 시도하면 꼬리
+   규칙에 걸려 버린 긴 말이 사전 순서 때문에 통째로 묻혔다(그 손실이 v15에서 50칸이었다). */
+function termAlts(w){
+  var out = [{s:w, n:w.length}], i;
+  for(i = 2; i <= w.length - 2; i++){ out.push({s:w.slice(0, i) + '\\s?' + w.slice(i), n:w.length}); }
+  return out;
+}
+var TERM_ALT = [];
+TERM_WORDS.forEach(function(w){ TERM_ALT = TERM_ALT.concat(termAlts(w)); });
+TERM_ALT.sort(function(a, b){ return b.n - a.n; });   /* 같은 자리에서는 가장 긴 개념어가 이긴다 */
+var TERM_RX = new RegExp(TERM_ALT.map(function(x){ return x.s; }).join('|'), 'g');
 /* 용어 뒤에 올 수 있는 것 — 조사·서술 어미, 또는 한글이 아닌 글자(끝·공백·구두점) */
 var TERM_TAIL = /^(?:은|는|이|가|을|를|의|에서|에게|에는|에도|으로서|으로|로|과|와|도|만|보다|부터|까지|처럼|라고|라는|라도|이다|이며|이고|이나|인지|인가|하지|한다|하여|하면|되면|된다|되는|되지)?(?![가-힣])/;
 function isHangul(ch){
@@ -1139,6 +1172,15 @@ function blindHint(){
   if(blindNumOn() && !blindWordOn() && !blindWhoOn()) return '탭하면 숫자·기한이 보입니다. 먼저 기억으로 판단하세요.';
   var ms = blindModes();
   return '탭하면 가린 ' + (ms.length === 2 ? ms.join('과 ') : ms.join(', ')) + '이 보입니다. 먼저 기억으로 판단하세요.';
+}
+/* v16 — 가린 칸을 몇 개 열어 봤는지. 빈칸이 4~5개인 지문은 하나씩 탭하다 보면
+   "다 열었는지"를 잊기 쉬워, 힌트줄의 칸 수를 탭할 때마다 갱신한다(화면에만, 저장 없음). */
+function updateBlindCount(){
+  var box = document.querySelector('.blhint .blcnt'), st = document.querySelector('.stmt');
+  if(!box || !st) return;
+  var all = st.querySelectorAll('.bl').length, on = st.querySelectorAll('.bl.on').length;
+  box.textContent = !on ? '가린 칸 ' + all + '개'
+    : (on >= all ? '가린 칸 ' + all + '개 · 모두 열었습니다' : '가린 칸 ' + all + '개 · 열어 본 칸 ' + on);
 }
 function blindBarHTML(){
   if(!blindPanelOpen()) return '';
@@ -1555,7 +1597,20 @@ function startSession(mode, opts){
     }
   }else if(mode === 'wrong'){
     var n2 = opts.n || 10;
-    ids = wrongList(true).slice(0, n2).map(function(x){ return x.id; });
+    var wl = wrongList(true);
+    /* v16 — 오답노트에서 고른 원인·기간만 모아 출제(화면 상태만 쓰고 저장 필드는 늘리지 않는다) */
+    if(opts.cause || opts.recent7){
+      var wa = Date.now() - 7 * 86400000;
+      wl = wl.filter(function(x){
+        if(opts.recent7 && !(((x.w && x.w.last) || 0) >= wa)) return false;
+        if(!opts.cause) return true;
+        var c = (S.rc[x.q.id] && S.rc[x.q.id].c) || '';
+        return opts.cause === 'none' ? !CAUSE[c] : c === opts.cause;
+      });
+      if(wl.length) note = '오답노트의 ' + (opts.cause ? '‘' + (CAUSE[opts.cause] || '태그 없음') + '’ ' : '') +
+        (opts.recent7 ? '최근 7일 ' : '') + '오답만 모았습니다';
+    }
+    ids = wl.slice(0, n2).map(function(x){ return x.id; });
   }else if(mode === 'retry'){
     var want = (opts.ids || []).filter(function(id){ return byId.has(id); });
     if(want.length > 10){ note = '틀린 ' + want.length + '지문 중 10지문만 냅니다'; }
@@ -1602,6 +1657,7 @@ function startSession(mode, opts){
   session = {mode:mode, ids:ids, i:i, answered:answered, ok:okInit,
              subject:opts.subject || null, topic:opts.topic || null, date:dateStr,
              year:opts.year || null, round:opts.round || null,
+             cause:opts.cause || null, recent7:!!opts.recent7,
              startedAt:Date.now(), picked:null, noResume:!!opts.noResume,
              times:{}, combo:0, best:0, qStart:Date.now(), qStartFor:null, note:note};
   snapshotSession(); save();
@@ -2386,6 +2442,11 @@ function timeCardHTML(){
     }).join('') + '</div>';
   var bs = sel ? timeBuckets(sel) : all, n = timeSum(bs);
   var sweet = timeSweet(bs);
+  /* v16 — 표본이 작을 때의 정직한 표시. 구간 조건(3문항)만 채우면 sweet spot을 고르지만,
+     기억 표본이 10문항도 안 되면 우연히 맞힌 구간이 뽑힐 수 있다. 그때는 고르지 않은 척하지 않고
+     '참고' 배지와 함께 왜 참고인지 적어 준다(숨기지 않는 대신 숫자를 같이 보여 준다). */
+  var thin = !!sweet && n < 10;
+  var refb = thin ? '<span class="refb">참고</span>' : '';
   var fast = {n:0, ok:0}, slow = {n:0, ok:0};
   bs.forEach(function(b){ var t = (b.hi <= 60) ? fast : slow; t.n += b.n; t.ok += b.ok; });
   var cmp = (fast.n && slow.n)
@@ -2395,7 +2456,8 @@ function timeCardHTML(){
   body += '<p class="tiny muted" style="margin-bottom:6px">' + (sel ? esc(shortName(sel)) + ' ' : '') + '표본 ' + n + '문항' +
     (n < 12 ? ' — 10문항쯤 더 풀면 더 정확해집니다' : '') + '</p>';
   body += sweet
-    ? '<p class="tiny tsweet" style="margin-bottom:6px">가장 정답률이 높은 구간 — <b>' + esc(sweet.lb) + '</b> (' + pct(sweet.ok, sweet.n) + '%, ' + sweet.n + '문항)</p>'
+    ? '<p class="tiny tsweet" style="margin-bottom:6px">가장 정답률이 높은 구간 — <b>' + esc(sweet.lb) + '</b> (' + pct(sweet.ok, sweet.n) + '%, ' + sweet.n + '문항)' + refb + '</p>' +
+      (thin ? '<p class="tiny muted" style="margin-bottom:6px">표본이 ' + n + '문항뿐이라 참고용입니다 — 10문항을 더 풀면 구간이 바뀔 수 있어요.</p>' : '')
     : '<p class="tiny muted" style="margin-bottom:6px">구간마다 3문항 이상 쌓여야 sweet spot을 고릅니다.</p>';
   body += timeBarsHTML(bs);
   if(cmp) body += '<p class="tiny muted" style="margin-top:8px">' + cmp + '</p>';
@@ -2403,6 +2465,7 @@ function timeCardHTML(){
   var rec = paceForBucket(sweet), cur = parseInt(S.cfg.pace, 10) || 0;
   if(rec){
     body += '<div class="pacebox"><span class="ptxt">💡 ' + (sel ? esc(shortName(sel)) + '은 ' : '전체는 ') + '<b>' + esc(sweet.lb) + '</b>에서 ' + pct(sweet.ok, sweet.n) + '%' +
+      (thin ? ' <span class="refb">표본 ' + n + '문항 · 참고</span>' : '') +
       ' — 답안지 페이스 <b>' + rec + '초</b>' + (cur === rec ? '로 두고 풀고 있습니다.' : '로 두면 이 구간을 넘지 않습니다.') + '</span>' +
       (cur === rec ? '' : '<button type="button" class="btn sm ghost" data-act="set-pace" data-p="' + rec + '">페이스 ' + rec + '초로</button>') +
       '</div>';
@@ -2411,7 +2474,7 @@ function timeCardHTML(){
     body += '<div class="sep"></div><div class="tsubj">' + rows.map(function(r){
       return '<button type="button" class="tsrow" data-act="tsubj" data-s="' + esc(r.s) + '">' +
         '<span class="nm">' + esc(shortName(r.s)) + '</span>' +
-        '<span class="bk">' + (r.sweet ? esc(r.sweet.lb) : '표본 부족') + '</span>' +
+        '<span class="bk">' + (r.sweet ? esc(r.sweet.lb) + (r.n < 10 ? ' <span class="refb">참고</span>' : '') : '표본 부족') + '</span>' +
         '<span class="rt">' + (r.sweet ? pct(r.sweet.ok, r.sweet.n) + '%' : '–') + '</span>' +
         '<span class="n">' + r.n + '문항</span><span class="arrow">›</span></button>';
     }).join('') + '</div>';
@@ -2513,6 +2576,7 @@ function renderQuiz(v, b){
   var comboHTML = (s.combo >= 2 && !s.review)
     ? '<span class="combo' + (s.combo >= 4 ? ' hot' : '') + '">🔥 ' + s.combo + '연속</span>' : '';
   var stmtHTML = maskHTML(q.stmt, isAnswered);   /* 답한 뒤에는 가린 값을 그대로 보여 준다 */
+  var nBl = stmtHTML.split('class="bl').length - 1;   /* 이 지문에 지금 가린 칸 수 */
   var stmtHasKey = stmtHTML.indexOf('class="bl key"') >= 0;
   var stmtHasWho = stmtHTML.indexOf('class="bl who"') >= 0;
   var stmtHasNum = stmtHTML.indexOf('class="bl"') >= 0;
@@ -2532,7 +2596,7 @@ function renderQuiz(v, b){
     }else if(lacking.length){
       hint += ' 이 지문에는 가릴 ' + lackText() + ' 없습니다.';
     }
-    hintHTML = '<div class="blhint">' + hint + '</div>';
+    hintHTML = '<div class="blhint">' + (nBl ? '<span class="blcnt">가린 칸 ' + nBl + '개</span> · ' : '') + hint + '</div>';
   }
 
   if(isAnswered){
@@ -2580,7 +2644,7 @@ function renderQuiz(v, b){
     '<div class="qwrap">' +
     (q.q && q.q !== q.stmt && q.stmt.length < 20
       ? '<div class="stemctx"><span class="lb">발문</span>' + esc(q.q) + '</div>' : '') +
-    '<div class="stmt"><span class="qmark">Q.</span>' + stmtHTML + '</div>' +
+    '<div class="stmt' + (nBl >= 4 ? ' dense' : '') + '"><span class="qmark">Q.</span>' + stmtHTML + '</div>' +
     hintHTML +
     (q.q && q.q !== q.stmt && q.stmt.length >= 20 ? '<details class="origin"><summary>📄 이 선지의 문제 원문 보기</summary><div class="body">' + esc(q.q) + '</div></details>' : '') +
     (isAnswered ?
@@ -2623,7 +2687,7 @@ function sessionLabel(s){
   if(s.mode === 'drill') return '취약 문항 드릴';
   if(s.mode === 'blind') return '빈칸 전용 10제';
   if(s.mode === 'book') return '북마크';
-  return '오답 집중';
+  return '오답 집중' + (s.cause ? ' · ' + (CAUSE[s.cause] || '태그 없음') : '') + (s.recent7 ? ' · 최근 7일' : '');
 }
 
 function renderDone(v, b){
@@ -2698,6 +2762,44 @@ function renderWrong(v, b){
   var closed = all.filter(function(x){ return x.w.res; });
   var dnkList = all.filter(function(x){ return S.dnk[x.q.id]; });
   var list = tab === 'dnk' ? dnkList : (tab === 'open' ? open : closed);
+  /* v16 — 오답 원인·최근 7일 필터. 원인 태그는 틀린 직후에 하나만 고르게 되어 이미 쌓여 있으므로,
+     '무엇에 걸리는지'만 모아 다시 풀 수 있게 한다(고른 원인은 화면 상태로만 둔다 — 저장 필드 없음).
+     최근 7일은 오래된 오답이 목록을 가득 채우지 않게 하는 고정 기간 — 지난주에 틀린 것부터 다시 본다. */
+  var rcF = view.rcF || '', r7 = !!view.rc7;
+  var weekAgo = Date.now() - 7 * 86400000;
+  function causeOf(x){ return (x.w && S.rc[x.q.id] && CAUSE[S.rc[x.q.id].c]) ? S.rc[x.q.id].c : ''; }
+  function passF(x){
+    if(r7 && !(((x.w && x.w.last) || 0) >= weekAgo)) return false;
+    if(!rcF) return true;
+    var c = causeOf(x);
+    return rcF === 'none' ? !c : c === rcF;
+  }
+  var raw = list;
+  list = list.filter(passF);
+  var cnt = {all:0, num:0, who:0, exc:0, con:0, none:0}, cnt7 = 0;
+  raw.forEach(function(x){
+    if(((x.w && x.w.last) || 0) >= weekAgo) cnt7++;
+    if(r7 && !(((x.w && x.w.last) || 0) >= weekAgo)) return;
+    cnt.all++;
+    var c = causeOf(x);
+    if(c) cnt[c]++; else cnt.none++;
+  });
+  function rcLabel(c){ return !c ? '전체' : (CAUSE[c] || '원인 태그 없음'); }
+  var fch = '<div class="fchips" role="group" aria-label="오답 원인 필터">' +
+    [['', '전체', cnt.all]].concat(CAUSE_ORDER.map(function(c){ return [c, CAUSE[c], cnt[c]]; }))
+      .concat([['none', '태그 없음', cnt.none]]).map(function(it){
+        return '<button type="button" class="fchip' + (rcF === it[0] ? ' on' : '') + '" data-act="rcF" data-c="' + it[0] + '"' +
+          (!it[2] && it[0] ? ' disabled' : '') + ' aria-pressed="' + (rcF === it[0]) + '">' + esc(it[1]) +
+          '<span class="k">' + it[2] + '</span></button>';
+      }).join('') +
+    '<button type="button" class="fchip' + (r7 ? ' on' : '') + '" data-act="rc7" aria-pressed="' + r7 + '">최근 7일' +
+      '<span class="k">' + cnt7 + '</span></button>' +
+    '</div>';
+  var fnote = (rcF || r7)
+    ? '<div class="spread tiny muted" style="margin:-4px 2px 10px;align-items:center"><span>🔎 ' +
+        esc([rcF ? rcLabel(rcF) : '', r7 ? '최근 7일' : ''].filter(Boolean).join(' · ')) + ' · ' + list.length + '문항</span>' +
+        '<button class="fchip" type="button" data-act="rcClear" style="min-height:30px;padding:4px 9px">해제</button></div>'
+    : '';
   var rows = list.map(function(x){
     var q = x.q;
     return '<div class="li"><div class="q">' + esc(q.stmt) + '</div>' +
@@ -2723,14 +2825,20 @@ function renderWrong(v, b){
     '<div class="tabs"><button type="button" class="' + (tab === 'open' ? 'on' : '') + '" data-act="tab" data-t="open">다시 볼 ' + open.length + '</button>' +
       '<button type="button" class="' + (tab === 'dnk' ? 'on' : '') + '" data-act="tab" data-t="dnk">모름 ' + dnkList.length + '</button>' +
       '<button type="button" class="' + (tab === 'closed' ? 'on' : '') + '" data-act="tab" data-t="closed">해결됨 ' + closed.length + '</button></div>' +
+    fch +
+    fnote +
     drillCardHTML() +
     (list.length ? '<div class="list">' + rows + '</div>' :
-      '<div class="card center"><p class="muted">' + (tab === 'dnk' ? '「모르겠음」으로 넘긴 지문이 여기에 모입니다.'
+      '<div class="card center"><p class="muted">' + ((rcF || r7) ? '이 조건의 지문이 없습니다 — 「전체」나 「해제」를 누르면 모두 보입니다.'
+        : tab === 'dnk' ? '「모르겠음」으로 넘긴 지문이 여기에 모입니다.'
         : tab === 'open' ? (isAll() ? '다시 볼 문항이 없습니다. 잘 하고 있어요.' : esc(scopeLabel()) + '에는 다시 볼 문항이 없습니다.')
         : '해결된 문항이 아직 없습니다.') + '</p></div>');
 
-  b.innerHTML = open.length
-    ? '<button class="btn primary" type="button" data-act="start-wrong">🔁 오답 집중 출제 · ' + Math.min(open.length, 10) + '문항</button>'
+  var cta = open.filter(passF);
+  b.innerHTML = cta.length
+    ? '<button class="btn primary" type="button" data-act="start-wrong">🔁 ' +
+        ((rcF || r7) ? '‘' + (rcF ? rcLabel(rcF) : '최근 7일') + '’ ' : '오답 집중 ') +
+        Math.min(cta.length, 10) + '문항 출제</button>'
     : '<button class="btn" type="button" data-act="home">홈으로</button>';
 }
 
@@ -2765,12 +2873,15 @@ function renderStats(v, b){
   var cc = causeCounts(), ccTot = cc.num + cc.who + cc.exc + cc.con;
   var rowsCause = '<div class="card" style="margin-top:12px"><h3>내 오답 원인</h3>' +
     (ccTot
-      ? '<p class="muted tiny" style="margin-bottom:10px">틀린 지문에 남긴 태그 ' + ccTot + '개</p>' +
+      ? '<p class="muted tiny" style="margin-bottom:10px">틀린 지문에 남긴 태그 ' + ccTot + '개 — 줄을 누르면 그 원인만 모아 봅니다</p>' +
         CAUSE_ORDER.map(function(c){
           var w = Math.round(cc[c] / ccTot * 100);
-          return '<div class="causerow"><span class="cr" style="flex:0 0 80px">' + CAUSE[c] + '</span>' +
+          return '<button type="button" class="causerow asbtn" data-act="rcause-jump" data-c="' + c + '"' +
+            (!cc[c] ? ' disabled' : '') + ' aria-label="' + esc(CAUSE[c] + ' ' + cc[c] + '건 오답노트로') + '">' +
+            '<span class="cr" style="flex:0 0 80px">' + CAUSE[c] + '</span>' +
             '<span class="bar2"><i style="width:' + w + '%"></i></span>' +
-            '<span class="tiny muted" style="flex:0 0 46px;text-align:right">' + cc[c] + '</span></div>';
+            '<span class="tiny muted" style="flex:0 0 40px;text-align:right">' + cc[c] + '</span>' +
+            '<span class="go">›</span></button>';
         }).join('')
       : '<p class="muted tiny">틀린 지문의 해설 위에서 <b>숫자·기한 / 주체·권한 / 예외·요건 / 개념혼동</b> 중 하나를 고르면 여기에 쌓입니다.</p>') +
     '</div>';
@@ -2925,7 +3036,7 @@ function importJSON(file){
 document.addEventListener('click', function(ev){
   /* 가린 숫자·기한 — 탭하면 보인다 */
   var bEl = ev.target.closest && ev.target.closest('.bl');
-  if(bEl){ bEl.classList.toggle('on'); return; }
+  if(bEl){ bEl.classList.toggle('on'); updateBlindCount(); return; }
   /* 사용자가 펼친 상세(문제 원문·내 메모)는 뒤로가기 1회로 먼저 닫는다 */
   var sm = ev.target.closest && ev.target.closest('details > summary');
   if(sm){
@@ -3123,8 +3234,26 @@ document.addEventListener('click', function(ev){
   }else if(act === 'start-wrong'){
     var open = wrongList(true);
     if(!open.length){ toast('다시 볼 문항이 없습니다'); return; }
-    startSession('wrong', {n: Math.min(open.length, 10)});
-  }else if(act === 'tab'){ navReplace({name:'wrong', tab: el.getAttribute('data-t')}); }
+    startSession('wrong', {n: Math.min(open.length, 10), cause: view.rcF || null, recent7: !!view.rc7});
+  }else if(act === 'tab'){ navReplace({name:'wrong', tab: el.getAttribute('data-t'), rcF: view.rcF || '', rc7: !!view.rc7}); }
+  else if(act === 'rcF'){
+    var tyF = window.scrollY;
+    view.rcF = el.getAttribute('data-c') || '';
+    render();
+    try{ window.scrollTo(0, tyF); }catch(e){}
+  }else if(act === 'rc7'){
+    var ty7 = window.scrollY;
+    view.rc7 = !view.rc7;
+    render();
+    try{ window.scrollTo(0, ty7); }catch(e){}
+  }else if(act === 'rcClear'){
+    var tyC = window.scrollY;
+    view.rcF = ''; view.rc7 = false;
+    render();
+    try{ window.scrollTo(0, tyC); }catch(e){}
+  }else if(act === 'rcause-jump'){
+    navPush({name:'wrong', tab:'open', rcF: el.getAttribute('data-c') || ''});
+  }
   else if(act === 'resolve' || act === 'unresolve'){
     var id = el.getAttribute('data-id');
     if(S.wrong[id]){ S.wrong[id].res = act === 'resolve' ? 1 : 0; save(); render(); }
@@ -3265,10 +3394,12 @@ window.__sebeop = {
   timeCard: timeCardHTML, drillCard: drillCardHTML, paceRef: paceRef,
   trapRows: trapRows, trapCard: trapCardHTML, trapInline: trapInline, TRAP_PAIRS: TRAP_PAIRS,
   terms: TERM_WORDS, termHits: termHits, logAtt: logAtt,
+  termAlts: termAlts, termAltCount: function(){ return TERM_ALT.length; },
   timeSweet: timeSweet, timeSubjRows: timeSubjRows, paceForBucket: paceForBucket, maskCount: maskCount,
   blindCard: blindCardHTML, drillBase: function(){ return drillBase; },
   startBlind: function(){ if(!blindOn()) S.flags.blindw = true; startSession('blind', {n:10}); },
-  startDrill: function(){ var d = drillInfo(); if(d.total) startSession('drill', {ids:d.items.map(function(x){ return x.id; })}); }
+  startDrill: function(){ var d = drillInfo(); if(d.total) startSession('drill', {ids:d.items.map(function(x){ return x.id; })}); },
+  sessionLabel: sessionLabel, startWrong: function(o){ startSession('wrong', o || {n:10}); }
 };
 })();
 </script>
