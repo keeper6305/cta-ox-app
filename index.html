@@ -551,6 +551,7 @@ main#view.qz{display:flex; flex-direction:column;}
 }
 .traps .w.alt{background:var(--surface2); color:var(--muted);}
 .traps .vs{font-size:.72rem; color:var(--muted); font-weight:800;}
+.traps .lb{font-size:.66rem; font-weight:800; color:var(--muted); background:var(--surface2); border-radius:6px; padding:1px 5px; margin-left:-2px;}
 .traps .tip{font-size:.72rem; color:var(--muted); margin-top:4px; line-height:1.55; word-break:keep-all;}
 
 /* 취약 드릴 — 오답·모름·느린 문항을 한 세트로 */
@@ -658,7 +659,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=16"></script>
+<script src="./bank.js?v=17"></script>
 <script>
 (function(){
 'use strict';
@@ -974,34 +975,22 @@ function dropContained(hits){
 var TRAP_PAIRS = [
   {a:'하여야\\s*한다|하여야\\s*하며|하여야\\s*하는|하여야\\s*할|해야\\s*한다|해야\\s*하며|해야\\s*하는|되어야\\s*한다|되어야\\s*하며|되어야\\s*할',
    b:'할\\s*수\\s*있다|할\\s*수\\s*없다|할\\s*수\\s*있으며|할\\s*수\\s*있고|할\\s*수\\s*있는',
-   aw:'하여야 한다', bw:'할 수 있다 (재량)',
-   tip:'‘하여야 한다’는 예외 없는 의무, ‘할 수 있다’는 재량 — 이 한 마디가 O/X를 가릅니다.'},
-  {a:'이상', b:'초과(?!분)', aw:'이상 (그 값 포함)', bw:'초과 (그 값 미포함)',
-   tip:'‘이상’은 그 값을 포함하고, ‘초과’는 포함하지 않습니다.'},
-  {a:'이하', b:'미만', aw:'이하 (그 값 포함)', bw:'미만 (그 값 미포함)',
-   tip:'‘이하’는 그 값을 포함하고, ‘미만’은 포함하지 않습니다.'},
-  {a:'이내', b:'경과|도과', aw:'이내 (기한 안)', bw:'경과 (기한을 넘김)',
-   tip:'‘이내’는 기한 안, ‘경과’는 기한을 넘긴 것입니다.'},
+   aw:'하여야 한다', bw:'할 수 있다', al:'의무', bl:'재량'},
+  {a:'이상', b:'초과(?!분)', aw:'이상', bw:'초과', al:'값 포함', bl:'값 미포함'},
+  {a:'이하', b:'미만', aw:'이하', bw:'미만', al:'값 포함', bl:'값 미포함'},
+  {a:'이내', b:'경과|도과', aw:'이내', bw:'경과', al:'기한 안', bl:'기한 넘김'},
   {a:'포함한다|포함된다|포함하여|포함되는|포함', b:'제외한다|제외된다|제외하여|제외되는|제외',
-   aw:'포함한다', bw:'제외한다',
-   tip:'같은 문장에서 ‘포함’과 ‘제외’가 갈리면 결론이 뒤집힙니다.'},
+   aw:'포함한다', bw:'제외한다', al:'', bl:''},
   {a:'인정된다|인정되지|인정한다|인정할', b:'부인한다|부인된다|부정한다',
-   aw:'인정된다', bw:'부인한다',
-   tip:'‘인정된다’와 ‘부인한다’는 정반대 결론입니다.'},
+   aw:'인정된다', bw:'부인한다', al:'', bl:''},
   {a:'증가한다|증가하며|증가하고|증가시키|증가시킨|상승한다|커진다|높아진다|늘어난다',
    b:'감소한다|감소하며|감소하고|감소시키|감소시킨|하락한다|작아진다|낮아진다|줄어든다',
-   aw:'증가한다', bw:'감소한다',
-   tip:'방향(증가/감소)만 바꿔 놓은 선지가 가장 흔한 함정입니다.'},
-  /* v15 — 기한 방향(전/후)·기간의 양끝(부터/까지)·법적 귀속과 경제적 귀착 */
+   aw:'증가한다', bw:'감소한다', al:'', bl:''},
   {a:'전에|전까지', b:'후에|이후',
-   aw:'전 (그 시점 앞)', bw:'후 (그 시점 뒤)',
-   tip:'‘전’은 기한을 앞당기고 ‘후’는 늦춥니다 — 날짜 계산 문제는 이 한 글자에서 뒤집힙니다.'},
+   aw:'전', bw:'후', al:'', bl:''},
   {a:'귀속된다|귀속되지|귀속되는|귀속시|귀속되|귀속', b:'귀착된다|귀착되지|귀착되는|귀착되|귀착',
-   aw:'귀속 (법적으로 돌아감)', bw:'귀착 (부담이 실제로 얹힘)',
-   tip:'‘귀속’은 소득·재산이 법적으로 돌아가는 곳, ‘귀착’은 세금 부담이 실제로 얹히는 곳입니다.'},
-  {a:'부터', b:'까지',
-   aw:'부터 (기산일)', bw:'까지 (종기)',
-   tip:'‘부터’는 시작, ‘까지’는 끝 — 기간의 방향이 반대입니다.'}
+   aw:'귀속', bw:'귀착', al:'법적으로', bl:'실제 부담'},
+  {a:'부터', b:'까지', aw:'부터', bw:'까지', al:'시작', bl:'끝'}
 ];
 var TRAP_RX = new RegExp(TRAP_PAIRS.map(function(p){ return p.a + '|' + p.b; }).join('|'), 'g');
 /* 이미 만들어진 HTML(해설·hl)에서 태그 밖 글자만 칠한다 — 태그 속성은 건드리지 않는다.
@@ -1045,16 +1034,19 @@ function trapCardHTML(q){
   var rows = trapRows(q).slice(0, 3);
   if(!rows.length) return '';
   return '<div class="traps"><div class="ttl">⚖️ 함정 대비어</div>' +
-    '<div class="sub">이 지문이 갈린 표현 — 왼쪽은 지문에 나온 말, 오른쪽은 짝이 되는 말입니다.</div>' +
     rows.map(function(r){
       var p = r.p, leftIsA = r.a.length > 0;
       var left = leftIsA ? r.a : r.b;
       var right = leftIsA ? (r.b.length ? r.b : [p.bw]) : (r.a.length ? r.a : [p.aw]);
-      return '<div class="tp"><div class="wr">' +
-        left.map(function(w){ return '<span class="w">' + esc(w) + '</span>'; }).join('') +
-        '<span class="vs">↔</span>' +
-        right.map(function(w){ return '<span class="w alt">' + esc(w) + '</span>'; }).join('') +
-        '</div><div class="tip">' + esc(p.tip) + '</div></div>';
+      var ll = leftIsA ? p.al : p.bl, rl = leftIsA ? p.bl : p.al;
+      function cell(words, label, alt){
+        return words.map(function(w){
+          return '<span class="w' + (alt ? ' alt' : '') + '">' + esc(w) + '</span>' +
+                 (label ? '<span class="lb">' + esc(label) + '</span>' : '');
+        }).join('');
+      }
+      return '<div class="tp"><div class="wr">' + cell(left, ll, false) +
+        '<span class="vs">↔</span>' + cell(right, rl, true) + '</div></div>';
     }).join('') + '</div>';
 }
 
