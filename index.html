@@ -2936,7 +2936,7 @@ function renderWrong(v, b){
   var ctaLabel = tab === 'dnk' ? '🤷 모름 ' : tab === 'closed' ? '✅ 해결 ' : '🔁 오답 집중 ';
   b.innerHTML = cta.length
     ? '<button class="btn primary" type="button" data-act="start-wrong">' +
-        (tab === 'open' && (rcF || r7) ? '‘' + (rcF ? rcLabel(rcF) : '최근 7일') + '’ ' : ctaLabel) +
+        (tab === 'open' && (rcF || r7) ? ctaLabel + '‘' + (rcF ? rcLabel(rcF) : '최근 7일') + '’ ' : ctaLabel) +
         Math.min(cta.length, 10) + '문항 출제</button>'
     : '<button class="btn" type="button" data-act="home">홈으로</button>';
 }
