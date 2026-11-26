@@ -564,6 +564,12 @@ main#view.qz{display:flex; flex-direction:column;}
 .drillcard .t b{font-variant-numeric:tabular-nums;}
 .drillcard .d{font-size:.73rem; color:var(--muted); font-weight:600; margin-top:2px; word-break:keep-all;}
 .drillcard .btn{width:auto; flex:none; min-height:44px; white-space:nowrap; padding:8px 12px;}
+/* v18 — 빈칸 카드에서 모드를 바로 고른다 */
+.blindcard{display:block;}
+.blindcard .brow{display:flex; align-items:center; gap:10px;}
+.blindcard .bmodes{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+.blindcard .bmodes .fchip{flex:1 1 auto; min-height:38px;}
+.blindcard .bnote{margin-top:7px; font-size:.68rem; color:var(--muted); font-weight:600; word-break:keep-all;}
 /* 시간 × 정답률 */
 .tbrow{display:flex; align-items:center; gap:8px; margin-top:7px;}
 .tbrow .lb{flex:0 0 60px; font-size:.74rem; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums;}
@@ -659,7 +665,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=17"></script>
+<script src="./bank.js?v=18"></script>
 <script>
 (function(){
 'use strict';
@@ -920,7 +926,23 @@ var TERM_WORDS = [
      한 칸도 만들지 못하므로 넣지 않았다 — 빈칸만 늘고 배울 게 없으면 소음이다). */
   '부가가치세', '소득세', '원천징수', '세액공제', '소득공제', '가산세', '증여세', '상속세', '재산세',
   '기부금', '필요경비', '관세', '탈세', '후생함수', '능력원칙', '편익원칙', '독점시장', '실효세율',
-  '경기변동', '총비용', '총수입'
+  '경기변동', '총비용', '총수입',
+  /* v18 — 세법 절차·과세 단위·소득 구분, 행소법 소송 유형, 회계 측정 용어.
+     v16까지 사전은 "한 어절짜리 개념어"가 중심이라, 세법 지문에서 O/X를 가르는
+     **복합 개념어**(과세표준 / 과세기간 / 세금계산서 / 세무조사 / 양도차익 …)가 통째로 비어 있었다.
+     2,524지문에서 실제로 나오는 말만 골랐고(붙여 쓴 꼴·띄어 쓴 꼴 모두 확인), 법령 이름
+     (「국세기본법」·「소득세법」)은 일부러 넣지 않았다 — 지문의 틀을 먼저 밝히는 말이라 가리면
+     무엇을 묻는지가 사라지고, O/X를 가르는 자리도 아니다. */
+  '세금계산서', '전자세금계산서', '수정세금계산서', '매출세액', '매입세액',
+  '과세표준', '과세표준신고', '과세기간', '과세기간종료일', '사업연도', '사업연도종료일',
+  '소득금액', '배당소득', '기타소득', '이자소득', '사업소득', '근로소득', '양도소득', '퇴직소득', '종합소득',
+  '취득가액', '양도차익', '결손금', '이월결손금', '세무상결손금', '세무조사', '세무공무원',
+  '과세처분', '부과처분', '체납처분', '소득처분', '부당행위계산', '부당행위계산부인',
+  '경정청구', '이의신청', '심판청구', '예정신고', '확정신고', '비과세', '거래상대방',
+  '조세포탈', '조세부과', '재화', '용역',
+  '장부가액', '역사적원가', '퇴직급여',
+  '부작위위법확인소송', '소송계속', '관할위반', '본안판결', '전치요건', '재처분의무', '위법성',
+  '무조건부보조금', '한계편익', '해외직접투자', '평균비용가격', '영기준예산제도'
 ];
 /* ─────────── v16 · 띄어 쓴 개념어 인식 규칙 ───────────
    기출 지문은 같은 개념을 붙여 쓰기도, 띄어 쓰기도 한다("규모의경제"/"규모의 경제",
@@ -1580,21 +1602,38 @@ function startSession(mode, opts){
     dateStr = pk;
   }else if(mode === 'focus'){
     var n = opts.n || S.cfg.count;
-    var rnd = mulberry32(hashStr('focus:' + opts.subject + ':' + opts.topic + ':' + dateStr + ':' + Object.keys(S.ans).length));
-    var pool = BANK.filter(function(q){ return q.subject === opts.subject && q.topic === opts.topic; });
+    var rnd = mulberry32(hashStr('focus:' + opts.subject + ':' + opts.topic + ':' + (opts.cause || '') + ':' + dateStr + ':' + Object.keys(S.ans).length));
+    /* v18 — 오답 원인 × 단원 칸을 누르면 **그 단원에서 그 원인에 걸린 지문만** 낸다.
+       원인은 이미 틀린 직후 받아 둔 태그(S.rc)라 새 입력도 새 저장 필드도 없다. */
+    function causeOK(q){
+      if(!opts.cause) return true;
+      var c = (S.rc[q.id] && S.rc[q.id].c) || '';
+      return opts.cause === 'none' ? !CAUSE[c] : c === opts.cause;
+    }
+    var pool = BANK.filter(function(q){ return q.subject === opts.subject && q.topic === opts.topic && causeOK(q); });
     ids = priorityOrder(pool, rnd).slice(0, n).map(function(q){ return q.id; });
     /* 단원 지문이 10개보다 적으면 같은 과목 다른 단원에서 모자란 만큼 더 넣는다(10문항 고정 유지) */
     if(ids.length < n){
       var usedF = {}; ids.forEach(function(id){ usedF[id] = 1; });
       var rndF = mulberry32(hashStr('focuspad:' + opts.subject + ':' + opts.topic + ':' + dateStr));
-      var extra = BANK.filter(function(q){ return q.subject === opts.subject && q.topic !== opts.topic && !usedF[q.id]; });
+      var extra = BANK.filter(function(q){ return q.subject === opts.subject && q.topic !== opts.topic && !usedF[q.id] && causeOK(q); });
       var fill = priorityOrder(extra, rndF).slice(0, n - ids.length);
       fill.forEach(function(q){ ids.push(q.id); });
       if(fill.length) note = '이 단원 지문이 ' + (ids.length - fill.length) + '개라 같은 과목 ' + fill.length + '문항을 더 넣었습니다';
     }
+    if(opts.cause && ids.length){
+      var cs = '‘' + (CAUSE[opts.cause] || '태그 없음') + '’';
+      note = (note ? note + ' · ' : '') + (ids.length < n
+        ? cs + '이 걸린 지문이 ' + ids.length + '개뿐이라 ' + ids.length + '문항만 냅니다'
+        : cs + '이 걸린 지문만 모았습니다');
+    }
   }else if(mode === 'wrong'){
     var n2 = opts.n || 10;
-    var wl = wrongList(true);
+    /* v18 — 오답노트의 탭(다시 볼 / 모름 / 해결됨)이 고른 목록을 그대로 받는다.
+       목록을 화면에서 계산해 넘기므로 저장 필드가 늘지 않고, 탭과 출제가 어긋나지 않는다. */
+    var wl = (opts.ids && opts.ids.length)
+      ? opts.ids.map(function(id){ return {id:id, q:byId.get(id), w:S.wrong[id] || {}}; }).filter(function(x){ return !!x.q; })
+      : (opts.dnk ? wrongList(false).filter(function(x){ return !!S.dnk[x.q.id]; }) : wrongList(true));
     /* v16 — 오답노트에서 고른 원인·기간만 모아 출제(화면 상태만 쓰고 저장 필드는 늘리지 않는다) */
     if(opts.cause || opts.recent7){
       var wa = Date.now() - 7 * 86400000;
@@ -1654,7 +1693,7 @@ function startSession(mode, opts){
   session = {mode:mode, ids:ids, i:i, answered:answered, ok:okInit,
              subject:opts.subject || null, topic:opts.topic || null, date:dateStr,
              year:opts.year || null, round:opts.round || null,
-             cause:opts.cause || null, recent7:!!opts.recent7,
+             cause:opts.cause || null, recent7:!!opts.recent7, dnk:!!opts.dnk, tag:opts.tag || null,
              startedAt:Date.now(), picked:null, noResume:!!opts.noResume,
              times:{}, combo:0, best:0, qStart:Date.now(), qStartFor:null, note:note};
   snapshotSession(); save();
@@ -2539,11 +2578,30 @@ function blindCountFor(num, word, who){
 function blindCardHTML(){
   var on = blindModes();
   var n = on.length ? blindCountFor(blindNumOn(), blindWordOn(), blindWhoOn()) : blindCountFor(false, true, false);
-  return '<div class="drillcard" style="border-color:var(--warn)">' +
-    '<div class="bd"><div class="t">🎯 빈칸 전용 10제</div>' +
-    '<div class="d">' + (on.length ? esc(on.join(' · ')) + '를 가린' : '핵심어를 켜고 가린') +
+  /* v18 — 카드에서 바로 모드를 고른다. 지금까지는 풀이 화면에 들어가 토글한 뒤 나와야
+     마음에 드는 빈칸 세트가 나왔고, 아무것도 안 켜져 있으면 늘 핵심어로 시작했다.
+     항목별 지문 수를 칩에 같이 적어 무엇을 고르는지 보이게 한다(고른 모드는 기존 flags). */
+  /* 받침에 맞는 목적격 조사 — '숫자·기한를'처럼 어색한 문구를 만들지 않는다 */
+  function objP(w){
+    var ch = String(w || '').slice(-1), c = ch.charCodeAt(0);
+    if(!(c >= 0xAC00 && c <= 0xD7A3)) return '을';
+    return ((c - 0xAC00) % 28) ? '을' : '를';
+  }
+  function bmode(m, isOn, label, cnt){
+    return '<button type="button" class="fchip' + (isOn ? ' on' : '') + '" data-act="blind-mode" data-m="' + m +
+      '" aria-pressed="' + isOn + '">' + label + '<span class="k">' + cnt.toLocaleString('ko-KR') + '</span></button>';
+  }
+  return '<div class="drillcard blindcard" style="border-color:var(--warn)">' +
+    '<div class="brow"><div class="bd"><div class="t">🎯 빈칸 전용 10제</div>' +
+    '<div class="d">' + (on.length ? esc(on.join(' · ')) + objP(on[on.length - 1]) + ' 가린' : '가릴 항목을 고르면 그 항목을 가린') +
       ' 지문 ' + n.toLocaleString('ko-KR') + '개 중 10문항 — 가린 칸을 기억으로 채우고 O/X</div></div>' +
-    '<button class="btn sm primary" type="button" data-act="start-blind">시작</button></div>';
+    '<button class="btn sm primary" type="button" data-act="start-blind">시작</button></div>' +
+    '<div class="bmodes" role="group" aria-label="가릴 항목 고르기">' +
+      bmode('num', blindNumOn(), '🔢 숫자·기한', blindCountFor(true, false, false)) +
+      bmode('word', blindWordOn(), '🔑 핵심어', blindCountFor(false, true, false)) +
+      bmode('who', blindWhoOn(), '👤 주체·권한', blindCountFor(false, false, true)) +
+    '</div>' +
+    '<div class="bnote">' + (on.length ? '고른 항목이 여럿이면 한 지문에서 함께 가립니다.' : '아무것도 고르지 않고 시작하면 핵심어로 엽니다.') + '</div></div>';
 }
 
 function renderQuiz(v, b){
@@ -2594,7 +2652,7 @@ function renderQuiz(v, b){
     }else if(lacking.length){
       hint += ' 이 지문에는 가릴 ' + lackText() + ' 없습니다.';
     }
-    hintHTML = '<div class="blhint">' + (nBl ? '<span class="blcnt">가린 칸 ' + nBl + '개</span> · ' : '') + hint + '</div>';
+    hintHTML = '<div class="blhint">' + (nBl ? '<span class="blcnt" aria-live="polite">가린 칸 ' + nBl + '개</span> · ' : '') + hint + '</div>';
   }
 
   if(isAnswered){
@@ -2680,13 +2738,50 @@ function renderQuiz(v, b){
 function sessionLabel(s){
   if(!s) return '';
   if(s.mode === 'daily') return scopeLabel() + ' 데일리';
-  if(s.mode === 'focus') return shortName(s.subject || '') + ' · ' + (s.topic || '') + ' 집중';
+  if(s.mode === 'focus') return shortName(s.subject || '') + ' · ' + (s.topic || '') + ' 집중' +
+    (s.cause ? ' · ' + (CAUSE[s.cause] || '태그 없음') : '');
   if(s.mode === 'round') return shortName(s.subject || '') + ' · ' + (s.year || '') + ' ' + (s.round || '') + ' 기출';
   if(s.mode === 'retry') return '틀린 지문 다시';
-  if(s.mode === 'drill') return '취약 문항 드릴';
+  if(s.mode === 'drill') return s.tag || '취약 문항 드릴';
   if(s.mode === 'blind') return '빈칸 전용 10제';
   if(s.mode === 'book') return '북마크';
+  if(s.dnk) return '모름 집중' + (s.cause ? ' · ' + (CAUSE[s.cause] || '태그 없음') : '') + (s.recent7 ? ' · 최근 7일' : '');
   return '오답 집중' + (s.cause ? ' · ' + (CAUSE[s.cause] || '태그 없음') : '') + (s.recent7 ? ' · 최근 7일' : '');
+}
+
+/* v18 — 결과 화면의 약점 동선: 이번 세션에서 틀린 지문의 **원인**과 **단원**을 바로 다음
+   행동으로 연결한다. 원인 칩은 오답노트를 그 원인으로 걸러 열고(rcause-jump), 단원 줄은
+   그 단원 10문항으로 들어간다. 세션 객체에만 쓰고 저장 필드는 늘리지 않는다. */
+function wonCauseHTML(s){
+  var ids = Object.keys((s && s.answered) || {}).filter(function(id){ return s.answered[id] !== (byId.get(id) || {}).answer; });
+  if(!ids.length) return '';
+  var cc = {num:0, who:0, exc:0, con:0}, untag = 0, tp = {};
+  ids.forEach(function(id){
+    var c = S.rc[id] && S.rc[id].c;
+    if(CAUSE[c]) cc[c]++; else untag++;
+    var q = byId.get(id);
+    if(q){ var k = q.subject + '|' + q.topic; tp[k] = (tp[k] || 0) + 1; }
+  });
+  var tot = CAUSE_ORDER.reduce(function(a, c){ return a + cc[c]; }, 0);
+  var chips = CAUSE_ORDER.map(function(c){
+    return '<button type="button" class="fchip" data-act="rcause-jump" data-c="' + c + '"' + (cc[c] ? '' : ' disabled') +
+      ' aria-label="' + esc(CAUSE[c] + ' ' + cc[c] + '건 오답노트로') + '">' + CAUSE[c] + '<span class="k">' + cc[c] + '</span></button>';
+  }).join('');
+  if(untag) chips += '<button type="button" class="fchip" data-act="wrong">원인 미기록<span class="k">' + untag + '</span></button>';
+  var top = null;
+  Object.keys(tp).forEach(function(k){ if(!top || tp[k] > tp[top]) top = k; });
+  var topHTML = '';
+  if(top && tp[top] > 1){
+    var sp = top.split('|');
+    topHTML = '<div class="spread" style="margin-top:10px;gap:8px;align-items:center">' +
+      '<span class="tiny" style="font-weight:800;word-break:keep-all">' + esc(shortName(sp[0]) + ' · ' + sp[1]) +
+        '에서 ' + tp[top] + '문항</span>' +
+      '<button type="button" class="btn sm go" data-act="start-weak" data-subject="' + esc(sp[0]) + '" data-topic="' + esc(sp[1]) + '">이 단원 10문항</button></div>';
+  }
+  return '<div class="card" style="margin-top:12px"><h3>이번 세션에서 걸린 곳</h3>' +
+    '<p class="muted tiny" style="margin-bottom:10px">틀린 지문에 남긴 원인 ' + tot + '건' + (untag ? ' · 원인 미기록 ' + untag + '건' : '') +
+      ' — 원인을 누르면 그 원인만 모아 봅니다.</p>' +
+    '<div class="fchips" style="margin-bottom:0">' + chips + '</div>' + topHTML + '</div>';
 }
 
 function renderDone(v, b){
@@ -2748,7 +2843,8 @@ function renderDone(v, b){
             '<span class="chip ng">정답 ' + q.answer + '</span></div></div>';
         }).join('') + '</div>' + (ids.length > 8 ? '<p class="muted tiny" style="margin-top:8px">외 ' + (ids.length - 8) + '문항은 오답노트에 있습니다.</p>' : '');
       })() +
-    '</div>';
+    '</div>' +
+    wonCauseHTML(s);
   b.innerHTML = '<div class="row">' +
     '<button class="btn" type="button" data-act="home">홈</button>' +
     '<button class="btn' + (wIds.length ? '' : ' primary') + '" type="button" data-act="wrong" style="flex:1.6">오답 집중 이어서</button></div>';
@@ -2814,6 +2910,7 @@ function renderWrong(v, b){
           ? '<button class="btn sm" type="button" data-act="unresolve" data-id="' + esc(q.id) + '">다시 풀기 목록으로</button>'
           : '<button class="btn sm" type="button" data-act="resolve" data-id="' + esc(q.id) + '">해결됨 표시</button>') +
         '<button class="btn sm" type="button" data-act="solve-one" data-id="' + esc(q.id) + '">이 문항 풀기</button>' +
+        '<button class="btn sm" type="button" data-act="start-weak" data-subject="' + esc(q.subject) + '" data-topic="' + esc(q.topic) + '" aria-label="' + esc(q.topic + ' 단원 10문항 풀기') + '">이 단원 10</button>' +
       '</div></div>';
   }).join('');
 
@@ -2833,10 +2930,13 @@ function renderWrong(v, b){
         : tab === 'open' ? (isAll() ? '다시 볼 문항이 없습니다. 잘 하고 있어요.' : esc(scopeLabel()) + '에는 다시 볼 문항이 없습니다.')
         : '해결된 문항이 아직 없습니다.') + '</p></div>');
 
-  var cta = open.filter(passF);
+  /* v18 — 하단 버튼이 **지금 보고 있는 탭**을 따른다. 예전에는 탭과 상관없이 「다시 볼」 목록으로만
+     출제해서, 「모름」 탭을 보다가 누르면 정작 모름 지문은 빠졌다(약점 동선이 끊기는 자리). */
+  var cta = (tab === 'dnk' ? dnkList : tab === 'closed' ? closed : open).filter(passF);
+  var ctaLabel = tab === 'dnk' ? '🤷 모름 ' : tab === 'closed' ? '✅ 해결 ' : '🔁 오답 집중 ';
   b.innerHTML = cta.length
-    ? '<button class="btn primary" type="button" data-act="start-wrong">🔁 ' +
-        ((rcF || r7) ? '‘' + (rcF ? rcLabel(rcF) : '최근 7일') + '’ ' : '오답 집중 ') +
+    ? '<button class="btn primary" type="button" data-act="start-wrong">' +
+        (tab === 'open' && (rcF || r7) ? '‘' + (rcF ? rcLabel(rcF) : '최근 7일') + '’ ' : ctaLabel) +
         Math.min(cta.length, 10) + '문항 출제</button>'
     : '<button class="btn" type="button" data-act="home">홈으로</button>';
 }
@@ -2908,7 +3008,7 @@ function renderStats(v, b){
       ? '<p class="cmatrix insight">' +
           (ctBest ? '가장 많이 걸리는 곳 · <b>' + esc(shortName(ctBest.row.subject)) + ' · ' + esc(ctBest.row.topic) +
             '</b> × <b style="color:var(--ct-' + ctBest.c + ')">' + CAUSE[ctBest.c] + '</b> ' + ctBest.n + '건<br>' : '') +
-          '칸을 누르면 그 단원 10문항으로 바로 들어갑니다.' +
+          '칸을 누르면 <b>그 단원에서 그 원인에 걸린 지문만</b> 10문항으로 냅니다.' +
         '</p>' +
         '<div class="cmatrix">' + ctRows.slice(0, 6).map(function(r){
           var ts = topicStats(r.subject)[r.topic] || {n:0, rate:0};
@@ -2920,9 +3020,9 @@ function renderStats(v, b){
               var pc = n ? Math.round(14 + (n / ctMax) * 62) : 0;
               return '<button type="button" class="c' + (n ? ' hit' : '') + '"' +
                 ' style="--c:var(--ct-' + c + ');--pc:' + pc + '%"' +
-                (n ? ' data-act="start-weak" data-subject="' + esc(r.subject) + '" data-topic="' + esc(r.topic) + '"'
+                (n ? ' data-act="start-weak" data-subject="' + esc(r.subject) + '" data-topic="' + esc(r.topic) + '" data-cause="' + c + '"'
                    : ' disabled aria-disabled="true"') +
-                ' aria-label="' + esc(r.topic + ' ' + CAUSE[c] + ' ' + n + '건') + '">' +
+                ' aria-label="' + esc(r.topic + ' ' + CAUSE[c] + ' ' + n + '건 — 그 원인만 10문항') + '">' +
                 '<span class="v">' + (n || '·') + '</span><span>' + CAUSE[c].split('·')[0] + '</span></button>';
             }).join('') + '</div></div>';
         }).join('') + '</div>' +
@@ -3213,7 +3313,8 @@ document.addEventListener('click', function(ev){
   }else if(act === 'start-focus'){
     startSession('focus', {subject: el.getAttribute('data-subject'), topic: el.getAttribute('data-topic'), n: S.cfg.count});
   }else if(act === 'start-weak'){
-    startSession('focus', {subject: el.getAttribute('data-subject'), topic: el.getAttribute('data-topic'), n: 10});
+    startSession('focus', {subject: el.getAttribute('data-subject'), topic: el.getAttribute('data-topic'), n: 10,
+      cause: el.getAttribute('data-cause') || null});
   }else if(act === 'retry'){
     var idsR = String(el.getAttribute('data-ids') || '').split(',').filter(function(x){ return x; });
     if(!idsR.length){ toast('다시 풀 지문이 없습니다'); return; }
@@ -3231,9 +3332,27 @@ document.addEventListener('click', function(ev){
     if(!dInfo.total){ toast('취약 문항이 아직 없습니다 — 먼저 10문항 풀어 보세요'); return; }
     startSession('drill', {ids: dInfo.items.map(function(x){ return x.id; })});
   }else if(act === 'start-wrong'){
-    var open = wrongList(true);
-    if(!open.length){ toast('다시 볼 문항이 없습니다'); return; }
-    startSession('wrong', {n: Math.min(open.length, 10), cause: view.rcF || null, recent7: !!view.rc7});
+    /* v18 — 지금 보고 있는 탭의 목록으로 10문항. 예전에는 탭과 상관없이 「다시 볼」로만 나갔다. */
+    var wtab = view.tab || 'open';
+    var wkAgo = Date.now() - 7 * 86400000;
+    var cand = wrongList(false).filter(function(x){
+      if(wtab === 'dnk') return !!S.dnk[x.q.id];
+      if(wtab === 'closed') return !!x.w.res;
+      return !x.w.res;
+    });
+    if(view.rcF || view.rc7){
+      cand = cand.filter(function(x){
+        if(view.rc7 && !(((x.w && x.w.last) || 0) >= wkAgo)) return false;
+        if(!view.rcF) return true;
+        var cW = (S.rc[x.q.id] && S.rc[x.q.id].c) || '';
+        return view.rcF === 'none' ? !CAUSE[cW] : cW === view.rcF;
+      });
+    }
+    if(!cand.length){ toast('출제할 문항이 없습니다'); return; }
+    var wIds2 = cand.slice(0, 10).map(function(x){ return x.id; });
+    if(wtab === 'closed') startSession('drill', {ids: wIds2, tag: '해결 문항 다시'});
+    else startSession('wrong', {ids: wIds2, dnk: wtab === 'dnk', n: wIds2.length,
+      cause: view.rcF || null, recent7: !!view.rc7});
   }else if(act === 'tab'){ navReplace({name:'wrong', tab: el.getAttribute('data-t'), rcF: view.rcF || '', rc7: !!view.rc7}); }
   else if(act === 'rcF'){
     var tyF = window.scrollY;

@@ -1,6 +1,6 @@
 /* 세법 OX 서비스 워커 — 앱 셸 오프라인 캐시 */
-var CACHE = 'sebeop-ox-v17-trap';
-var ASSETS = ['./', './index.html', './bank.js?v=17', './manifest.json',
+var CACHE = 'sebeop-ox-v18-s1';
+var ASSETS = ['./', './index.html', './bank.js?v=18', './manifest.json',
               './icon-192.png', './icon-512.png', './icon-maskable-512.png',
               './apple-touch-icon.png', './favicon-32.png'];
 
