@@ -665,7 +665,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=20"></script>
+<script src="./bank.js?v=21"></script>
 <script>
 (function(){
 'use strict';
@@ -1761,7 +1761,7 @@ function answer(pick){
   /* 문항 소요 시간 — 실제 시험은 시간 싸움이라 평균 페이스를 보여 준다 */
   var spent = Date.now() - (session.qStart || Date.now());
   if(spent > 500 && spent < 900000){
-    session.times[q.id] = spent;
+    (session.times || (session.times = {}))[q.id] = spent;
     S.spd = S.spd || {n:0, ms:0};
     S.spd.n = (S.spd.n || 0) + 1; S.spd.ms = (S.spd.ms || 0) + spent;
     logAtt(q.id, spent, r.ok);
@@ -3186,7 +3186,8 @@ document.addEventListener('click', function(ev){
       var rq = byId.get(rid), ra = {};
       ra[rid] = rq.answer;
       session = {mode:'wrong', ids:[rid], i:0, answered:ra, ok:0, subject:null, topic:null,
-                 date:dkey(), picked:null, review:true};
+                 date:dkey(), picked:null, review:true,
+                 times:{}, combo:0, best:0, qStart:Date.now(), qStartFor:null};
       navPush({name:'quiz'});
     }
   }else if(act === 'back-exam'){ session = null; try{ history.back(); }catch(e){ navReplace({name:'examresult'}); } }
@@ -3378,7 +3379,8 @@ document.addEventListener('click', function(ev){
   }else if(act === 'solve-one'){
     var sid = el.getAttribute('data-id');
     if(byId.has(sid)){
-      session = {mode:'wrong', ids:[sid], i:0, answered:{}, ok:0, subject:null, topic:null, date:dkey(), picked:null, noResume:true};
+      session = {mode:'wrong', ids:[sid], i:0, answered:{}, ok:0, subject:null, topic:null, date:dkey(), picked:null, noResume:true,
+                 times:{}, combo:0, best:0, qStart:Date.now(), qStartFor:null};
       navPush({name:'quiz'});
     }
   }else if(act === 'export'){ exportJSON(); }
