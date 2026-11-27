@@ -384,10 +384,13 @@ async function suite(){
   inp.value = '가산세';
   var Ev = W().Event;
   inp.dispatchEvent(new Ev('input', {bubbles:true}));
-  await wait(90);
+  /* 앱은 검색 입력을 160ms 디바운스한다(키 입력마다 847KB 색인을 훑지 않게) — 결과가 뜰 때까지 기다린다 */
+  for(var wi = 0; wi < 25 && qa('#sres .li').length === 0; wi++) await wait(80);
   t('검색 결과 있음', qa('#sres .li').length > 0, body().slice(0, 120));
   t('결과 건수 표시', /건/.test((q('#scount') || {}).textContent || ''));
-  var firstHit = q('#sres .li .q').innerText.slice(0, 12);
+  var firstEl = q('#sres .li .q');
+  if(!firstEl) throw new Error('검색 결과 항목이 없음(디바운스 뒤 렌더 실패)');
+  var firstHit = firstEl.innerText.slice(0, 12);
   clickSel('#sres .li button[data-act="solve-one"]'); await wait(80);
   eq('검색에서 바로 풀기', api().session().ids.length, 1);
   t('검색한 지문 표시', body().indexOf(firstHit) >= 0);
