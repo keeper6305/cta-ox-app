@@ -1,6 +1,6 @@
 /* 세법 OX 서비스 워커 — 앱 셸 오프라인 캐시 */
-var CACHE = 'sebeop-ox-v18-s1';
-var ASSETS = ['./', './index.html', './bank.js?v=18', './manifest.json',
+var CACHE = 'sebeop-ox-v19';
+var ASSETS = ['./', './index.html', './bank.js?v=19', './manifest.json',
               './icon-192.png', './icon-512.png', './icon-maskable-512.png',
               './apple-touch-icon.png', './favicon-32.png'];
 
@@ -50,14 +50,19 @@ self.addEventListener('fetch', function(e){
     }));
     return;
   }
-  e.respondWith(caches.match(req).then(function(hit){
-    if(hit) return hit;
-    return fetch(req).then(function(r){
-      if(r && r.status === 200 && r.type === 'basic'){
-        var cp = r.clone();
-        caches.open(CACHE).then(function(c){ c.put(req, cp); });
-      }
-      return r;
+  /* v19: 자산도 network-first(ETag 재검증)로 바꿨다.
+     예전 cache-first 는 index 의 ?v= 와 이 CACHE 이름을 함께 올리지 않으면
+     bank.js 같은 데이터를 기존 사용자에게 영구 고정시켰다. 이제 배포하면 다음 로드에 바로 반영되고,
+     바뀐 게 없으면 304 라 본문을 다시 받지 않는다. 네트워크가 없을 때만 캐시로 대체한다. */
+  e.respondWith(fetch(req, {cache:'no-cache'}).then(function(r){
+    if(r && r.status === 200 && r.type === 'basic'){
+      var cp = r.clone();
+      caches.open(CACHE).then(function(c){ c.put(req, cp); });
+    }
+    return r;
+  }).catch(function(){
+    return caches.match(req, {ignoreSearch:true}).then(function(hit){
+      return hit || Response.error();
     });
   }));
 });

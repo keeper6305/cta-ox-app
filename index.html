@@ -665,7 +665,7 @@ window.__errs = [];
 window.addEventListener('error', function(e){ window.__errs.push(String(e.message || e.error)); });
 window.addEventListener('unhandledrejection', function(e){ window.__errs.push('unhandledrejection: ' + String(e.reason)); });
 </script>
-<script src="./bank.js?v=18"></script>
+<script src="./bank.js?v=19"></script>
 <script>
 (function(){
 'use strict';
@@ -3393,10 +3393,10 @@ document.addEventListener('click', function(ev){
   }
 });
 var memoT = 0;
-document.addEventListener('input', function(ev){
+var sqT = 0;   /* 검색 입력 디바운스(160ms) — 키 입력마다 847KB 색인 전량 스캔하던 것을 줄인다 */document.addEventListener('input', function(ev){
   var t = ev.target;
   if(!t) return;
-  if(t.id === 'sq'){ view.q = t.value; fillSearch(); return; }
+  if(t.id === 'sq'){ view.q = t.value; clearTimeout(sqT); sqT = setTimeout(function(){ fillSearch(); }, 160); return; }
   if(t.getAttribute && t.getAttribute('data-memoid')){
     S.memo[t.getAttribute('data-memoid')] = t.value;
     clearTimeout(memoT);
